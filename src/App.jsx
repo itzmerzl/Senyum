@@ -12,6 +12,7 @@ import Suppliers from './pages/Suppliers';
 import Products from './pages/Products';
 import PointOfSales from './pages/PointOfSales';
 import Transaction from './pages/Transaction';
+import PaymentMethods from './pages/PaymentMethods';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -132,6 +133,15 @@ function App() {
           element={
             <ProtectedRoute>
               <ComingSoon />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/payment-methods" 
+          element={
+            <ProtectedRoute>
+              <PaymentMethods />
             </ProtectedRoute>
           } 
         />

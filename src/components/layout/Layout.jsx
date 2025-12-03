@@ -14,7 +14,8 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  Landmark
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -39,6 +40,7 @@ export default function Layout({ children }) {
     { path: '/categories', icon: Tags, label: 'Kategori', permission: 'manage_products' },
     { path: '/suppliers', icon: Building2, label: 'Supplier', permission: 'manage_products' },
     { path: '/reports', icon: TrendingUp, label: 'Laporan', permission: 'manage_reports' },
+    { path: '/payment-methods', icon: Landmark, label: 'Metode Bayar', permission: 'manage_pos' },
     { path: '/users', icon: UserCog, label: 'Pengguna', permission: 'manage_users' },
     { path: '/settings', icon: Settings, label: 'Pengaturan', permission: 'manage_settings' },
   ];

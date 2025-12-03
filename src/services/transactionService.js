@@ -1,6 +1,34 @@
 import db from '../config/database';
-import { generateInvoiceNumber } from '../utils/generators';
-import { logActivity } from './activityLogService';
+import { updatePaymentMethodBalance } from './paymentMethodService';
+
+/**
+ * Update transaction
+ * @param {number} id - Transaction ID
+ * @param {object} data - Update data
+ * @returns {Promise<object>}
+ */
+export const updateTransaction = async (id, data) => {
+  try {
+    // ✅ CORRECT: Dexie way
+    const transaction = await db.transactions.get(id);
+    if (!transaction) {
+      throw new Error('Transaksi tidak ditemukan');
+    }
+    
+    const updatedTransaction = {
+      ...transaction,
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    await db.transactions.put(updatedTransaction);
+    
+    return updatedTransaction;
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    throw error;
+  }
+};
 
 // Get all transactions
 export async function getAllTransactions() {
@@ -52,31 +80,13 @@ export async function getTransactionByInvoice(invoiceNumber) {
 // Create new transaction
 export async function createTransaction(transactionData) {
   try {
-    // Generate invoice number
-    const invoiceNumber = await generateInvoiceNumber('INV');
-    
-    // Get current user (cashier)
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
-    // Prepare transaction object
+    // Validate & prepare transaction
     const transaction = {
-      invoiceNumber,
+      invoiceNumber: `INV${Date.now()}`,
       transactionDate: new Date(),
-      customerType: transactionData.customerType || 'general',
-      customerId: transactionData.customerId || null,
-      customerName: transactionData.customerName || 'Umum',
-      items: transactionData.items,
-      subtotal: transactionData.subtotal,
-      tax: transactionData.tax || 0,
-      discount: transactionData.discount || 0,
-      total: transactionData.total,
-      paymentMethod: transactionData.paymentMethod,
-      paidAmount: transactionData.paidAmount,
-      changeAmount: transactionData.changeAmount || 0,
-      status: 'completed',
-      cashierId: currentUser.id || null,
-      cashierName: currentUser.fullName || 'Admin',
-      notes: transactionData.notes || '',
+      ...transactionData,
+      status: transactionData.status || 'completed',
+      cashierId: transactionData.cashierId || 1,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -84,8 +94,8 @@ export async function createTransaction(transactionData) {
     // Save transaction
     const transactionId = await db.transactions.add(transaction);
     
-    // Update product stock
-    for (const item of transactionData.items) {
+    // Update stock for each item
+    for (const item of transaction.items) {
       const product = await db.products.get(item.productId);
       if (product) {
         await db.products.update(item.productId, {
@@ -93,69 +103,67 @@ export async function createTransaction(transactionData) {
           updatedAt: new Date()
         });
         
-        // Add stock movement record
+        // Log stock movement
         await db.stockMovements.add({
           productId: item.productId,
-          productName: item.productName,
           movementType: 'out',
           quantity: item.quantity,
-          reference: `Penjualan - ${invoiceNumber}`,
-          referenceId: transactionId,
-          notes: `Penjualan kepada ${transaction.customerName}`,
-          createdBy: currentUser.id || null,
+          reference: transaction.invoiceNumber,
+          notes: `Penjualan - ${transaction.invoiceNumber}`,
           createdAt: new Date()
         });
       }
     }
     
+    // ✅ UPDATE BALANCE: Only for completed transactions
+    if (transaction.status === 'completed') {
+      await updatePaymentMethodBalance(
+        transaction.paymentMethod, 
+        transaction.total,
+        'add'
+      );
+    }
+    
     // Log activity
-    await logActivity({
-      userId: currentUser.id,
-      action: 'create',
-      module: 'transactions',
-      description: `Membuat transaksi ${invoiceNumber}`,
-      metadata: {
-        transactionId,
-        invoiceNumber,
+    await db.activityLogs.add({
+      userId: transaction.cashierId,
+      action: 'create_transaction',
+      module: 'pos',
+      details: {
+        invoiceNumber: transaction.invoiceNumber,
         total: transaction.total,
+        paymentMethod: transaction.paymentMethod,
         itemCount: transaction.items.length
-      }
+      },
+      createdAt: new Date()
     });
     
-    // Return complete transaction
-    return {
-      id: transactionId,
-      ...transaction
-    };
-    
+    return { id: transactionId, ...transaction };
   } catch (error) {
     console.error('Error creating transaction:', error);
-    throw new Error('Gagal membuat transaksi: ' + error.message);
+    throw error;
   }
 }
 
-// Cancel/void transaction
-export async function cancelTransaction(id, reason) {
+/**
+ * Refund transaction
+ * @param {number} id - Transaction ID
+ * @param {object} refundData - Refund details
+ * @returns {Promise<object>}
+ */
+export const refundTransaction = async (id, refundData) => {
   try {
+    // ✅ CORRECT: Get transaction using Dexie
     const transaction = await db.transactions.get(id);
-    
     if (!transaction) {
       throw new Error('Transaksi tidak ditemukan');
     }
     
-    if (transaction.status === 'cancelled') {
-      throw new Error('Transaksi sudah dibatalkan');
+    if (transaction.status !== 'completed') {
+      throw new Error('Hanya transaksi selesai yang bisa di-refund');
     }
     
-    // Update status
-    await db.transactions.update(id, {
-      status: 'cancelled',
-      cancelReason: reason,
-      cancelledAt: new Date(),
-      updatedAt: new Date()
-    });
-    
-    // Kembalikan stok produk
+    // Restore stock for each item
     for (const item of transaction.items) {
       const product = await db.products.get(item.productId);
       if (product) {
@@ -167,32 +175,135 @@ export async function cancelTransaction(id, reason) {
         // Log stock movement
         await db.stockMovements.add({
           productId: item.productId,
-          productName: item.productName,
           movementType: 'in',
           quantity: item.quantity,
-          reference: `Pembatalan: ${transaction.invoiceNumber}`,
-          referenceId: id,
-          notes: `Pembatalan transaksi - ${reason}`,
+          reference: `REFUND-${transaction.invoiceNumber}`,
+          notes: `Refund - ${transaction.invoiceNumber}`,
           createdAt: new Date()
         });
       }
     }
     
+    // ✅ REDUCE BALANCE dari payment method
+    await updatePaymentMethodBalance(
+      transaction.paymentMethod,
+      refundData.refundAmount || transaction.total,
+      'subtract'
+    );
+    
+    // Update transaction status
+    const updatedTransaction = {
+      ...transaction,
+      status: 'refunded',
+      refundAmount: refundData.refundAmount || transaction.total,
+      refundReason: refundData.reason,
+      refundMethod: refundData.refundMethod,
+      refundedAt: new Date(),
+      refundedBy: 'Admin', // TODO: Get from auth context
+      updatedAt: new Date()
+    };
+    
+    await db.transactions.put(updatedTransaction);
+    
     // Log activity
-    await logActivity({
-      action: 'cancel',
+    await db.activityLogs.add({
+      userId: 1, // TODO: Get from auth
+      action: 'refund_transaction',
       module: 'transactions',
-      description: `Membatalkan transaksi ${transaction.invoiceNumber}`,
-      metadata: { transactionId: id, reason }
+      details: {
+        invoiceNumber: transaction.invoiceNumber,
+        refundAmount: refundData.refundAmount || transaction.total,
+        reason: refundData.reason
+      },
+      createdAt: new Date()
     });
     
-    return { success: true, message: 'Transaksi berhasil dibatalkan' };
+    return updatedTransaction;
+  } catch (error) {
+    console.error('Error refunding transaction:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cancel transaction
+ * @param {number} id - Transaction ID
+ * @param {string} reason - Cancellation reason
+ * @returns {Promise<object>}
+ */
+export const cancelTransaction = async (id, reason) => {
+  try {
+    // ✅ CORRECT: Get transaction using Dexie
+    const transaction = await db.transactions.get(id);
+    if (!transaction) {
+      throw new Error('Transaksi tidak ditemukan');
+    }
     
+    if (transaction.status === 'cancelled') {
+      throw new Error('Transaksi sudah dibatalkan');
+    }
+    
+    // Restore stock for each item (karena stok sudah dikurangi saat create)
+    for (const item of transaction.items) {
+      const product = await db.products.get(item.productId);
+      if (product) {
+        await db.products.update(item.productId, {
+          stock: product.stock + item.quantity,
+          updatedAt: new Date()
+        });
+        
+        // Log stock movement
+        await db.stockMovements.add({
+          productId: item.productId,
+          movementType: 'in',
+          quantity: item.quantity,
+          reference: `CANCEL-${transaction.invoiceNumber}`,
+          notes: `Pembatalan - ${transaction.invoiceNumber}`,
+          createdAt: new Date()
+        });
+      }
+    }
+    
+    // ✅ REDUCE BALANCE jika transaksi sudah completed
+    if (transaction.status === 'completed') {
+      await updatePaymentMethodBalance(
+        transaction.paymentMethod,
+        transaction.total,
+        'subtract'
+      );
+    }
+    
+    // Update transaction status
+    const updatedTransaction = {
+      ...transaction,
+      status: 'cancelled',
+      cancellationReason: reason,
+      cancelledAt: new Date(),
+      cancelledBy: 'Admin', // TODO: Get from auth context
+      updatedAt: new Date()
+    };
+    
+    await db.transactions.put(updatedTransaction);
+    
+    // Log activity
+    await db.activityLogs.add({
+      userId: 1, // TODO: Get from auth
+      action: 'cancel_transaction',
+      module: 'transactions',
+      details: {
+        invoiceNumber: transaction.invoiceNumber,
+        total: transaction.total,
+        reason: reason
+      },
+      createdAt: new Date()
+    });
+    
+    return updatedTransaction;
   } catch (error) {
     console.error('Error cancelling transaction:', error);
     throw error;
   }
-}
+};
 
 // Get transaction statistics
 export async function getTransactionStats(startDate, endDate) {
@@ -221,7 +332,7 @@ export async function getTransactionStats(startDate, endDate) {
     // Payment method breakdown
     const paymentMethods = {
       cash: completedTransactions.filter(t => t.paymentMethod === 'cash').length,
-      card: completedTransactions.filter(t => t.paymentMethod === 'card').length,
+      bank: completedTransactions.filter(t => t.paymentMethod === 'bank').length,
       qris: completedTransactions.filter(t => t.paymentMethod === 'qris').length
     };
     
@@ -395,8 +506,8 @@ export async function getDailySalesReport(date) {
     const totalCash = completedTransactions
       .filter(t => t.paymentMethod === 'cash')
       .reduce((sum, t) => sum + t.total, 0);
-    const totalCard = completedTransactions
-      .filter(t => t.paymentMethod === 'card')
+    const totalBank = completedTransactions
+      .filter(t => t.paymentMethod === 'bank')
       .reduce((sum, t) => sum + t.total, 0);
     const totalQris = completedTransactions
       .filter(t => t.paymentMethod === 'qris')
@@ -408,7 +519,7 @@ export async function getDailySalesReport(date) {
       cancelledTransactions: transactions.filter(t => t.status === 'cancelled').length,
       totalRevenue,
       totalCash,
-      totalCard,
+      totalBank,
       totalQris,
       averageTransaction: completedTransactions.length > 0 
         ? totalRevenue / completedTransactions.length 
@@ -427,6 +538,8 @@ export default {
   getTransactionById,
   getTransactionByInvoice,
   createTransaction,
+  updateTransaction,
+  refundTransaction,
   cancelTransaction,
   getTransactionStats,
   getTodayTransactions,

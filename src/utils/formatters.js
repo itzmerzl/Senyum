@@ -1,10 +1,18 @@
 // Currency Formatter
 export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
+  if (amount === undefined || amount === null) return 'Rp 0';
+  return 'Rp' + new Intl.NumberFormat('id-ID', {
     minimumFractionDigits: 0,
-  }).format(amount || 0);
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+
+export const formatReceiptCurrency = (amount) => {
+  if (amount === undefined || amount === null) return '0';
+  return new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
 };
 
 // Date Formatter
@@ -93,7 +101,35 @@ export const formatRegistrationNumber = (number) => {
 // Capitalize First Letter
 export const capitalizeFirst = (str) => {
   if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  
+  // Special cases for certain words
+  const specialCases = {
+    'bri': 'BRI',
+    'bni': 'BNI',
+    'mandiri': 'Mandiri',
+    'muamalat': 'Muamalat',
+    'bsi': 'BSI',
+    'qris': 'QRIS',
+    'gopay': 'GoPay',
+    'shopeepay': 'ShopeePay',
+    'dana': 'DANA',
+    'ovo': 'OVO',
+    'linkaja': 'LinkAja'
+  };
+  
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => {
+      // Check for special cases
+      const lowerWord = word.toLowerCase();
+      if (specialCases[lowerWord]) {
+        return specialCases[lowerWord];
+      }
+      // Normal capitalization
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
 };
 
 // Truncate Text
