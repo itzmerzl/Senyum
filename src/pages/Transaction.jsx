@@ -29,7 +29,7 @@ export default function Transaction() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [receiptToPrint, setReceiptToPrint] = useState(null);
-
+  
   // Filters
   const [filters, setFilters] = useState({
     startDate: '',
@@ -199,7 +199,7 @@ export default function Transaction() {
       const updateData = {
         status: 'completed',
         paymentConfirmedAt: new Date().toISOString(),
-        paymentConfirmedBy: 'Admin', // TODO: Get from auth context
+        paymentConfirmedBy: 'Admin',
         confirmationNotes: confirmPaymentData.notes,
         confirmedAmount: confirmPaymentData.confirmedAmount || selectedTransaction.total
       };
@@ -226,7 +226,6 @@ export default function Transaction() {
         }
       } catch (error) {
         console.error('Error updating payment method balance:', error);
-        // Continue even if balance update fails
       }
       
       toast.success('Pembayaran berhasil dikonfirmasi!', {
@@ -255,24 +254,20 @@ export default function Transaction() {
     }
   };
 
-  // ✅ FUNGSI untuk handle upload image
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Ukuran file maksimal 5MB');
       return;
     }
     
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('File harus berupa gambar');
       return;
     }
     
-    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setConfirmPaymentData(prev => ({
@@ -286,7 +281,6 @@ export default function Transaction() {
 
   const handleRefund = async () => {
     try {
-      // Create refund transaction record
       const refundTransaction = await refundTransaction(selectedTransaction.id, {
         type: 'refund',
         originalTransactionId: selectedTransaction.id,
@@ -297,13 +291,10 @@ export default function Transaction() {
         status: 'completed'
       });
       
-      // Update database accordingly
       refundData.items.forEach(item => {
-        // Add stock back
         updateProductStock(item.productId, item.quantity);
       });
       
-      // 3. Kurangi saldo payment method
       if (refundData.refundMethod === 'cash') {
         const cashMethod = await getPaymentMethodByCode('cash');
         await updatePaymentMethodBalance(cashMethod.id, {
@@ -314,7 +305,6 @@ export default function Transaction() {
         });
       }
       
-      // 4. Update status transaksi asli
       await updateTransaction(selectedTransaction.id, {
         status: 'refunded',
         refundAmount: refundData.totalRefund
@@ -332,7 +322,7 @@ export default function Transaction() {
       toast.success('Transaksi berhasil dibatalkan');
       setShowCancelModal(false);
       setCancelReason('');
-      loadTransactions(); // Refresh data
+      loadTransactions();
     } catch (error) {
       toast.error(error.message);
     }
@@ -358,26 +348,41 @@ export default function Transaction() {
     }
   };
   
+  // Helper untuk format Rupiah tanpa "Rp" di depan
+  const formatRp = (amount) => {
+    if (amount === undefined || amount === null) return '0';
+    return new Intl.NumberFormat('id-ID', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+  
+  // Fungsi untuk membuka preview struk
+  const openReceiptPreview = (transaction) => {
+    setReceiptToPrint(transaction);
+    setShowReceiptPreview(true);
+  };
+  
+  // Fungsi print struk setelah preview
   const handlePrintReceipt = (transaction) => {
     const printWindow = window.open('', '_blank', 'width=302,height=500');
     
     const itemsHtml = transaction.items.map(item => `
       <tr>
-        <td colspan="2" style="font-size: 9pt; font-weight: bold; padding: 1px 0; word-wrap: break-word;">
+        <td colspan="2" style="font-size: 9pt; font-weight: bold; padding: 1px 0;">
           ${item.productName}
         </td>
       </tr>
       <tr>
-        <td style="font-size: 8pt; padding: 0 0 2px 0; width: 70%;">
-          ${item.quantity} x ${formatCurrency(item.price)}
+        <td style="font-size: 8pt; padding: 0 0 2px 0;">
+          ${item.quantity} x Rp${formatRp(item.price)}
         </td>
-        <td style="text-align: right; font-size: 9pt; font-weight: bold; padding: 0 0 2px 0; width: 30%;">
-          ${formatCurrency(item.subtotal)}
+        <td style="font-size: 9pt; font-weight: bold; padding: 0 0 2px 0; text-align: right;">
+          Rp${formatRp(item.subtotal)}
         </td>
       </tr>
     `).join('');
     
-    // Format tanggal
     const formattedDate = new Date(transaction.transactionDate).toLocaleString('id-ID', {
       day: '2-digit',
       month: '2-digit',
@@ -385,7 +390,7 @@ export default function Transaction() {
       hour: '2-digit',
       minute: '2-digit'
     });
-    
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -393,280 +398,240 @@ export default function Transaction() {
         <meta charset="UTF-8">
         <title>Struk - ${transaction.invoiceNumber}</title>
         <style>
-          /* RESET TOTAL - NO MARGIN, NO PADDING */
+          /* RESET */
           * {
             margin: 0 !important;
             padding: 0 !important;
             box-sizing: border-box;
-            font-family: 'Courier New', Courier, monospace !important;
+            font-family: 'Courier New', monospace !important;
             line-height: 1.1 !important;
           }
           
-          /* BODY - 58mm EXACT */
           body {
             width: 58mm !important;
             min-height: auto !important;
-            max-height: auto !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 5px 3px !important;
             background: white !important;
             color: black !important;
             font-size: 9pt !important;
-            overflow: hidden !important;
           }
           
-          /* RECEIPT CONTAINER - TIGHT */
           .receipt {
             width: 58mm !important;
-            min-width: 58mm !important;
-            max-width: 58mm !important;
-            padding: 4px 3px 3px 3px !important;
-            margin: 0 !important;
-            background: white !important;
+            text-align: center;
             word-wrap: break-word;
-            overflow-wrap: break-word;
-            height: auto !important;
           }
           
-          /* HEADER */
+          .store-header {
+            margin-bottom: 5px;
+          }
+          
           .store-name {
             font-size: 12pt !important;
             font-weight: bold !important;
-            text-align: center !important;
             text-transform: uppercase !important;
-            margin-bottom: 2px !important;
-            padding-bottom: 2px !important;
-            border-bottom: 1px dashed #000 !important;
+            margin-bottom: 1px !important;
           }
           
-          .store-info {
+          .store-address {
             font-size: 8pt !important;
-            text-align: center !important;
-            margin-bottom: 5px !important;
-            padding-bottom: 3px !important;
-            border-bottom: 1px dashed #000 !important;
-          }
-          
-          /* INFO TRANSAKSI */
-          .transaction-info {
-            margin-bottom: 5px !important;
-            padding-bottom: 3px !important;
-            border-bottom: 1px dashed #000 !important;
-          }
-          
-          .info-row {
-            display: flex !important;
-            justify-content: space-between !important;
-            font-size: 8pt !important;
-            margin: 1px 0 !important;
-            word-wrap: break-word;
-          }
-          
-          .bold {
-            font-weight: bold !important;
-          }
-          
-          /* ITEMS */
-          .items-section {
-            margin-bottom: 5px !important;
-            padding-bottom: 3px !important;
-            border-bottom: 1px dashed #000 !important;
-          }
-          
-          .item-table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-          }
-          
-          .item-table td {
-            padding: 1px 0 !important;
-            vertical-align: top !important;
-            word-wrap: break-word;
-          }
-          
-          /* SUMMARY */
-          .summary-section {
-            margin-bottom: 5px !important;
-          }
-          
-          .summary-row {
-            display: flex !important;
-            justify-content: space-between !important;
-            font-size: 9pt !important;
-            margin: 2px 0 !important;
-          }
-          
-          /* TOTAL */
-          .total-row {
-            display: flex !important;
-            justify-content: space-between !important;
-            font-size: 10pt !important;
-            font-weight: bold !important;
-            margin: 3px 0 5px 0 !important;
-            padding-top: 3px !important;
-            border-top: 2px solid #000 !important;
-          }
-          
-          /* PAYMENT */
-          .payment-section {
-            margin-bottom: 5px !important;
-            padding-bottom: 3px !important;
-            border-bottom: 1px dashed #000 !important;
-          }
-          
-          .payment-row {
-            display: flex !important;
-            justify-content: space-between !important;
-            font-size: 9pt !important;
-            margin: 2px 0 !important;
-          }
-          
-          /* FOOTER */
-          .footer {
-            text-align: center !important;
-            font-size: 8pt !important;
-            margin-top: 5px !important;
-            padding-top: 3px !important;
-            border-top: 1px dashed #000 !important;
             line-height: 1.2 !important;
           }
           
-          .thank-you {
-            font-weight: bold !important;
-            margin-bottom: 2px !important;
+          .divider {
+            text-align: center;
+            margin: 4px 0;
+            font-size: 8pt;
+            letter-spacing: -1px;
           }
           
-          /* PRINT OPTIMIZATION */
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            margin: 2px 0;
+          }
+          
+          .info-label {
+            text-align: left;
+          }
+          
+          .info-value {
+            text-align: right;
+            font-weight: bold;
+          }
+          
+          .items-table {
+            width: 100%;
+            margin: 5px 0;
+          }
+          
+          .items-table td {
+            padding: 1px 0;
+            vertical-align: top;
+          }
+          
+          .item-name {
+            font-weight: bold;
+            font-size: 9pt;
+            text-align: left;
+          }
+          
+          .item-detail {
+            font-size: 8pt;
+            text-align: left;
+          }
+          
+          .item-price {
+            font-weight: bold;
+            font-size: 9pt;
+            text-align: right;
+          }
+          
+          .summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9pt;
+            margin: 2px 0;
+          }
+          
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10pt;
+            font-weight: bold;
+            margin: 5px 0;
+            padding-top: 3px;
+            border-top: 2px solid #000;
+          }
+          
+          .payment-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9pt;
+            margin: 2px 0;
+          }
+          
+          .footer {
+            margin-top: 5px;
+            padding-top: 3px;
+            font-size: 8pt;
+            line-height: 1.2;
+          }
+          
+          .thank-you {
+            font-weight: bold;
+            margin-bottom: 1px;
+          }
+          
           @media print {
             @page {
-              size: 58mm auto !important;
-              margin: 0 !important;
-            }
-            
-            /* HIDE EVERYTHING EXCEPT RECEIPT */
-            body *:not(.receipt):not(.receipt *) {
-              display: none !important;
-              height: 0 !important;
-              width: 0 !important;
-              overflow: hidden !important;
+              size: 58mm auto;
+              margin: 0;
             }
             
             body {
-              visibility: visible !important;
               width: 58mm !important;
-              height: auto !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              overflow: visible !important;
+              padding: 2px 1px !important;
+              font-size: 8pt !important;
             }
             
             .receipt {
-              visibility: visible !important;
-              position: relative !important;
-              top: 0 !important;
-              left: 0 !important;
               width: 58mm !important;
-              height: auto !important;
-              margin: 0 !important;
-              padding: 4px 3px 3px 3px !important;
-              overflow: visible !important;
-            }
-            
-            /* NO PAGE BREAKS */
-            .receipt {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-              page-break-after: avoid !important;
-            }
-            
-            /* Ensure text wraps properly */
-            .receipt * {
-              word-wrap: break-word !important;
-              overflow-wrap: break-word !important;
             }
           }
         </style>
       </head>
       <body>
-        <!-- HANYA ELEMEN INI YANG AKAN TAMPIL -->
         <div class="receipt">
           <!-- HEADER -->
-          <div class="store-name">KOPERASI SENYUMMU</div>
-          <div class="store-info">
-            <div>Jln. Pemandian No. 88</div>
-            <div>Telp: 085183079329</div>
+          <div class="store-header">
+            <div class="store-name">KOPERASI SENYUMMU</div>
+            <div class="store-address">Jln. Pemandian No. 88</div>
+            <div class="store-address">Telp: 085183079329</div>
           </div>
           
+          <div class="divider">--------------------------------</div>
+          
           <!-- TRANSACTION INFO -->
-          <div class="transaction-info">
+          <div>
             <div class="info-row">
-              <span>No Invoice:</span>
-              <span class="bold">${transaction.invoiceNumber}</span>
+              <span class="info-label">No Invoice</span>
+              <span class="info-value">${transaction.invoiceNumber}</span>
             </div>
             <div class="info-row">
-              <span>Tanggal:</span>
+              <span class="info-label">Tanggal</span>
               <span>${formattedDate}</span>
             </div>
             <div class="info-row">
-              <span>Kasir:</span>
+              <span class="info-label">Kasir</span>
               <span>${transaction.cashierName || 'Admin'}</span>
             </div>
             <div class="info-row">
-              <span>Pelanggan:</span>
+              <span class="info-label">Pelanggan</span>
               <span>${transaction.customerName || 'Umum'}</span>
             </div>
           </div>
           
+          <div class="divider">--------------------------------</div>
+          
           <!-- ITEMS -->
-          <div class="items-section">
-            <table class="item-table">
+          <div>
+            <table class="items-table">
               ${itemsHtml}
             </table>
           </div>
           
+          <div class="divider">--------------------------------</div>
+          
           <!-- SUMMARY -->
-          <div class="summary-section">
+          <div>
             <div class="summary-row">
-              <span>Subtotal:</span>
-              <span>${formatCurrency(transaction.subtotal)}</span>
+              <span>Subtotal</span>
+              <span>Rp${formatRp(transaction.subtotal)}</span>
             </div>
             ${transaction.tax > 0 ? `
             <div class="summary-row">
-              <span>Pajak:</span>
-              <span>${formatCurrency(transaction.tax)}</span>
+              <span>Pajak</span>
+              <span>Rp${formatRp(transaction.tax)}</span>
             </div>
             ` : ''}
             ${transaction.discount > 0 ? `
             <div class="summary-row">
-              <span>Diskon:</span>
-              <span>-${formatCurrency(transaction.discount)}</span>
+              <span>Diskon</span>
+              <span>-Rp${formatRp(transaction.discount)}</span>
             </div>
             ` : ''}
           </div>
           
           <!-- TOTAL -->
           <div class="total-row">
-            <span>TOTAL:</span>
-            <span>${formatCurrency(transaction.total)}</span>
+            <span>TOTAL</span>
+            <span>Rp${formatRp(transaction.total)}</span>
           </div>
           
+          <div class="divider">--------------------------------</div>
+          
           <!-- PAYMENT -->
-          <div class="payment-section">
+          <div>
             <div class="payment-row">
-              <span>Metode Bayar:</span>
-              <span class="bold">${capitalizeFirst(transaction.paymentMethodName || transaction.paymentMethod)}</span>
+              <span>Metode Bayar</span>
+              <span style="font-weight: bold;">${capitalizeFirst(transaction.paymentMethodName || transaction.paymentMethod)}</span>
             </div>
             <div class="payment-row">
-              <span>Dibayar:</span>
-              <span>${formatCurrency(transaction.paidAmount)}</span>
+              <span>Dibayar</span>
+              <span>Rp${formatRp(transaction.paidAmount)}</span>
             </div>
             ${transaction.changeAmount > 0 ? `
             <div class="payment-row">
-              <span>Kembali:</span>
-              <span class="bold">${formatCurrency(transaction.changeAmount)}</span>
+              <span>Kembali</span>
+              <span style="font-weight: bold;">Rp${formatRp(transaction.changeAmount)}</span>
             </div>
             ` : ''}
           </div>
+          
+          <div class="divider">--------------------------------</div>
           
           <!-- FOOTER -->
           <div class="footer">
@@ -677,35 +642,26 @@ export default function Transaction() {
         </div>
         
         <script>
-          // PRINT SCRIPT - MINIMAL
-          (function() {
-            // Tunggu DOM siap
-            document.addEventListener('DOMContentLoaded', function() {
-              // Scroll ke paling atas
-              window.scrollTo(0, 0);
-              
-              // Tunggu 300ms lalu print
-              setTimeout(function() {
-                window.print();
-              }, 300);
-            });
-            
-            // Close setelah print
-            window.onafterprint = function() {
-              setTimeout(function() {
-                if (!window.closed) {
-                  window.close();
-                }
-              }, 200);
-            };
-            
-            // Force close setelah 3 detik
+          document.addEventListener('DOMContentLoaded', function() {
+            window.scrollTo(0, 0);
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          });
+          
+          window.onafterprint = function() {
             setTimeout(function() {
               if (!window.closed) {
                 window.close();
               }
-            }, 3000);
-          })();
+            }, 200);
+          };
+          
+          setTimeout(function() {
+            if (!window.closed) {
+              window.close();
+            }
+          }, 3000);
         </script>
       </body>
       </html>
@@ -792,7 +748,6 @@ export default function Transaction() {
             </div>
           </div>
 
-          {/* ✅ NEW: Pending Transactions Card */}
           <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -1056,7 +1011,6 @@ export default function Transaction() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          {/* ✅ IMPROVED: Status Badge dengan warna dinamis */}
                           <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
                             {statusInfo.icon}
                             {statusInfo.label}
@@ -1074,13 +1028,12 @@ export default function Transaction() {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            {/* ✅ IMPROVED: Conditional Actions berdasarkan status */}
                             {transaction.status === 'pending' && (
                               <>
                                 <button
                                   onClick={() => {
-                                    // TODO: Implement confirm payment
-                                    toast.loading('Fitur konfirmasi pembayaran akan segera hadir');
+                                    setSelectedTransaction(transaction);
+                                    setShowConfirmPaymentModal(true);
                                   }}
                                   className="p-2 hover:bg-green-50 text-green-600 rounded-lg"
                                   title="Konfirmasi Pembayaran"
@@ -1125,9 +1078,9 @@ export default function Transaction() {
                             )}
                             {(transaction.status === 'completed' || transaction.status === 'pending') && (
                               <button
-                                onClick={() => handlePrintReceipt(transaction)}
+                                onClick={() => openReceiptPreview(transaction)}
                                 className="p-2 hover:bg-green-50 text-green-600 rounded-lg"
-                                title="Cetak Struk"
+                                title="Preview & Cetak Struk"
                               >
                                 <Printer className="w-4 h-4" />
                               </button>
@@ -1190,8 +1143,161 @@ export default function Transaction() {
               Menampilkan {filteredTransactions.length} dari {transactions.length} transaksi
             </p>
           </div>
-          )}
+        )}
       </div>
+      
+      {/* Modal Preview Struk */}
+      <Modal
+        isOpen={showReceiptPreview}
+        onClose={() => setShowReceiptPreview(false)}
+        title="Preview Struk"
+        size="sm"
+      >
+        {receiptToPrint && (() => {
+          const formattedDate = new Date(receiptToPrint.transactionDate).toLocaleString('id-ID', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          return (
+            <div className="space-y-4">
+              {/* Preview Struk */}
+              <div className="bg-white border-2 border-gray-800 rounded-none p-4 font-mono max-h-[500px] overflow-y-auto">
+                {/* Header */}
+                <div className="text-center mb-3">
+                  <h2 className="text-lg font-bold uppercase tracking-wider mb-1">KOPERASI SENYUMMU</h2>
+                  <p className="text-xs">Jln. Pemandian No. 88</p>
+                  <p className="text-xs">Telp: 085183079329</p>
+                </div>
+                
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">--------------------------------</div>
+                
+                {/* Transaction Info */}
+                <div className="text-xs space-y-1 mb-3">
+                  <div className="flex justify-between">
+                    <span>No Invoice</span>
+                    <span className="font-bold">{receiptToPrint.invoiceNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tanggal</span>
+                    <span>{formattedDate}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Kasir</span>
+                    <span>{receiptToPrint.cashierName || 'Admin'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Pelanggan</span>
+                    <span>{receiptToPrint.customerName || 'Umum'}</span>
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">--------------------------------</div>
+                
+                {/* Items */}
+                <div className="mb-3">
+                  {receiptToPrint.items?.map((item, idx) => (
+                    <div key={idx} className="mb-2">
+                      <div className="font-bold text-sm">{item.productName}</div>
+                      <div className="flex justify-between text-xs">
+                        <span>{item.quantity} x Rp{formatRp(item.price)}</span>
+                        <span className="font-bold">Rp{formatRp(item.subtotal)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">--------------------------------</div>
+                
+                {/* Summary */}
+                <div className="text-xs space-y-1 mb-2">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>Rp{formatRp(receiptToPrint.subtotal)}</span>
+                  </div>
+                  {receiptToPrint.tax > 0 && (
+                    <div className="flex justify-between">
+                      <span>Pajak</span>
+                      <span>Rp{formatRp(receiptToPrint.tax)}</span>
+                    </div>
+                  )}
+                  {receiptToPrint.discount > 0 && (
+                    <div className="flex justify-between">
+                      <span>Diskon</span>
+                      <span>-Rp{formatRp(receiptToPrint.discount)}</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Total */}
+                <div className="text-center border-t-2 border-black pt-2 mb-3">
+                  <div className="flex justify-between font-bold text-sm">
+                    <span>TOTAL</span>
+                    <span>Rp{formatRp(receiptToPrint.total)}</span>
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">--------------------------------</div>
+                
+                {/* Payment */}
+                <div className="text-xs space-y-1 mb-3">
+                  <div className="flex justify-between">
+                    <span>Metode Bayar</span>
+                    <span className="font-bold">{capitalizeFirst(receiptToPrint.paymentMethodName || receiptToPrint.paymentMethod)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Dibayar</span>
+                    <span>Rp{formatRp(receiptToPrint.paidAmount)}</span>
+                  </div>
+                  {receiptToPrint.changeAmount > 0 && (
+                    <div className="flex justify-between">
+                      <span>Kembali</span>
+                      <span className="font-bold">Rp{formatRp(receiptToPrint.changeAmount)}</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">--------------------------------</div>
+                
+                {/* Footer */}
+                <div className="text-center text-xs">
+                  <div className="font-bold mb-1">Terima kasih atas kunjungan Anda!</div>
+                  <div>Barang yang sudah dibeli</div>
+                  <div>tidak dapat dikembalikan</div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowReceiptPreview(false)}
+                  className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReceiptPreview(false);
+                    setTimeout(() => handlePrintReceipt(receiptToPrint), 100);
+                  }}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                >
+                  <Printer className="w-5 h-5" />
+                  Cetak Struk
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
       
       {/* Detail Transaction Modal */}
       <Modal
@@ -1209,7 +1315,7 @@ export default function Transaction() {
           
           return (
             <div className="space-y-4">
-              {/* ✅ Status Banner - Prominent status indicator */}
+              {/* Status Banner */}
               <div className={`rounded-lg p-4 border-2 ${
                 isPending ? 'bg-yellow-50 border-yellow-300' :
                 isCompleted ? 'bg-green-50 border-green-300' :
@@ -1245,7 +1351,6 @@ export default function Transaction() {
                     </div>
                   </div>
                   
-                  {/* Quick Actions for Pending */}
                   {isPending && (
                     <div className="flex gap-2">
                       <button
@@ -1315,7 +1420,7 @@ export default function Transaction() {
                 </div>
               </div>
               
-              {/* ✅ Payment Method & Status - Side by side with better styling */}
+              {/* Payment Method & Status */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="border-2 border-gray-200 rounded-lg p-4">
                   <p className="text-xs text-gray-500 uppercase font-medium mb-2">Metode Pembayaran</p>
@@ -1343,7 +1448,7 @@ export default function Transaction() {
                 </div>
               </div>
 
-              {/* ✅ Payment Details for Bank Transfer (Pending or Completed) */}
+              {/* Payment Details for Bank Transfer */}
               {(isPending || isCompleted) && selectedTransaction.paymentDetails && (
                 <div className={`rounded-lg border-2 p-4 ${
                   isPending ? 'bg-yellow-50 border-yellow-300' : 'bg-blue-50 border-blue-300'
@@ -1416,7 +1521,7 @@ export default function Transaction() {
                 </div>
               )}
 
-              {/* ✅ Cancellation/Refund Info */}
+              {/* Cancellation/Refund Info */}
               {(isCancelled || isRefunded) && (
                 <div className={`rounded-lg border-2 p-4 ${
                   isCancelled ? 'bg-red-50 border-red-300' : 'bg-purple-50 border-purple-300'
@@ -1500,7 +1605,7 @@ export default function Transaction() {
                 </div>
               </div>
               
-              {/* ✅ Summary - Better visual hierarchy */}
+              {/* Summary */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-gray-200">
                 <p className="text-xs text-gray-500 uppercase font-bold mb-3">Ringkasan Pembayaran</p>
                 <div className="space-y-2.5">
@@ -1532,7 +1637,7 @@ export default function Transaction() {
                 </div>
               </div>
               
-              {/* ✅ Payment Amount Details - Only for completed/pending */}
+              {/* Payment Amount Details */}
               {(isCompleted || isPending) && (
                 <div className={`rounded-lg p-4 border-2 ${
                   isPending ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'
@@ -1563,7 +1668,7 @@ export default function Transaction() {
                 </div>
               )}
 
-              {/* ✅ Transaction Timeline - Show history if available */}
+              {/* Transaction Timeline */}
               {selectedTransaction.timeline && selectedTransaction.timeline.length > 0 && (
                 <div className="border-2 border-gray-200 rounded-lg p-4">
                   <p className="text-xs text-gray-500 uppercase font-bold mb-3 flex items-center gap-2">
@@ -1586,14 +1691,12 @@ export default function Transaction() {
                 </div>
               )}
               
-              {/* ✅ Action Buttons - Context-aware */}
+              {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t-2 border-gray-200">
                 {isCompleted && (
                   <>
                     <button
-                      onClick={() => {
-                        handlePrintReceipt(selectedTransaction);
-                      }}
+                      onClick={() => openReceiptPreview(selectedTransaction)}
                       className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <Printer className="w-5 h-5" />
@@ -1615,9 +1718,7 @@ export default function Transaction() {
                 {isPending && (
                   <>
                     <button
-                      onClick={() => {
-                        handlePrintReceipt(selectedTransaction);
-                      }}
+                      onClick={() => openReceiptPreview(selectedTransaction)}
                       className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                     >
                       <Printer className="w-5 h-5" />
@@ -1645,8 +1746,7 @@ export default function Transaction() {
               </div>
             </div>
           );
-        })(
-        )}
+        })()}
       </Modal>
 
       {/* Cancel Transaction Modal */}
@@ -1786,7 +1886,7 @@ export default function Transaction() {
               </div>
             )}
 
-            {/* Confirmed Amount Input - COMPLETE FIX */}
+            {/* Confirmed Amount Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Jumlah yang Diterima <span className="text-red-500">*</span>
