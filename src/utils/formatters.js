@@ -15,6 +15,15 @@ export const formatReceiptCurrency = (amount) => {
   }).format(amount);
 };
 
+// Helper untuk format Rupiah tanpa "Rp" di depan
+export const formatRp = (amount) => {
+  if (amount === undefined || amount === null) return '0';
+  return new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+
 // Date Formatter
 export const formatDate = (date, format = 'long') => {
   if (!date) return '-';

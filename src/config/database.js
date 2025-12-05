@@ -1,14 +1,16 @@
 import Dexie from 'dexie';
 
-// Initialize Database
 export const db = new Dexie('Senyum');
 
-db.version(2).stores({
+db.version(6).stores({
   students: '++id, registrationNumber, fullName, className, program, gender, status',
   liabilities: '++id, studentId, liabilityType, category, status, dueDate',
-  products: '++id, sku, barcode, name, categoryId, supplierId, isActive',
+  products: '++id, sku, barcode, name, categoryId, supplierId, stock, isActive',
   categories: '++id, code, name, isActive',
-  suppliers: '++id, code, name, isActive',
+  
+  // 🎯 SUPPLIERS - Simplified with Bank Details
+  suppliers: '++id, code, name, phone, email, address, bankName, isActive, lastOrderDate, createdAt',
+  
   transactions: '++id, invoiceNumber, transactionDate, customerId, customerType, status, cashierId, paymentMethod',
   payments: '++id, receiptNumber, studentId, liabilityId, paymentDate, cashierId',
   stockMovements: '++id, productId, movementType, createdAt',
@@ -17,15 +19,95 @@ db.version(2).stores({
   activityLogs: '++id, userId, action, module, createdAt',
   bankAccounts: '++id, bankName, bankCode, accountNumber, accountHolder, isActive',
   paymentMethods: '++id, code, name, type, isActive, displayOrder, balance'
+  
 }).upgrade(async tx => {
-  // Set initial balance to 0 for all existing payment methods
-  const methods = await tx.table('paymentMethods').toArray();
-  for (const method of methods) {
-    if (method.balance === undefined) {
-      await tx.table('paymentMethods').update(method.id, { balance: 0 });
+  console.log('🔄 Upgrading to simplified supplier schema...');
+  
+  try {
+    const suppliers = await tx.table('suppliers').toArray();
+    console.log(`📦 Migrating ${suppliers.length} suppliers to simplified schema...`);
+    
+    for (const supplier of suppliers) {
+      const updates = {};
+      
+      // Keep only essential fields
+      if (!supplier.code) updates.code = `SUP/${String(supplier.id).padStart(3, '0')}`;
+      if (!supplier.name) updates.name = 'Supplier';
+      if (supplier.phone === undefined) updates.phone = '';
+      if (supplier.email === undefined) updates.email = '';
+      if (supplier.address === undefined) updates.address = '';
+      if (supplier.bankName === undefined) updates.bankName = '';
+      if (supplier.bankAccount === undefined) updates.bankAccount = '';
+      if (supplier.bankAccountName === undefined) updates.bankAccountName = '';
+      if (supplier.isActive === undefined) updates.isActive = true;
+      if (supplier.notes === undefined) updates.notes = '';
+      if (supplier.totalOrders === undefined) updates.totalOrders = 0;
+      if (supplier.totalAmount === undefined) updates.totalAmount = 0;
+      if (supplier.lastOrderDate === undefined) updates.lastOrderDate = null;
+      if (!supplier.createdAt) updates.createdAt = new Date().toISOString();
+      if (!supplier.updatedAt) updates.updatedAt = new Date().toISOString();
+      
+      if (Object.keys(updates).length > 0) {
+        await tx.table('suppliers').update(supplier.id, updates);
+      }
     }
+    
+    console.log('✅ Suppliers simplified successfully');
+  } catch (error) {
+    console.error('❌ Supplier migration failed:', error);
   }
 });
+
+/**
+ * Supplier default values - SIMPLIFIED WITH BANK DETAILS
+ */
+export const getSupplierDefaults = (overrides = {}) => ({
+  code: '',
+  name: '',
+  phone: '',
+  email: '',
+  address: '',
+  bankName: '',
+  bankAccount: '',
+  bankAccountName: '',
+  notes: '',
+  isActive: true,
+  totalOrders: 0,
+  totalAmount: 0,
+  lastOrderDate: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides
+});
+
+/**
+ * Bank list for Indonesia
+ */
+export const INDONESIA_BANKS = [
+  'Bank Mandiri',
+  'Bank BCA',
+  'Bank BNI',
+  'Bank BRI',
+  'Bank BTN',
+  'Bank CIMB Niaga',
+  'Bank Danamon',
+  'Bank Permata',
+  'Bank Maybank',
+  'Bank OCBC NISP',
+  'Bank Panin',
+  'Bank Sinarmas',
+  'Bank UOB',
+  'Bank Mega',
+  'Bank BII',
+  'Bank BTPN',
+  'Bank Bukopin',
+  'Bank Syariah Indonesia (BSI)',
+  'Bank Muamalat',
+  'Bank Jago',
+  'Bank Neo Commerce',
+  'Jenius (BTPN)',
+  'Lainnya'
+];
 
 // Seed Initial Data
 export async function seedInitialData() {
@@ -112,7 +194,7 @@ export async function seedInitialData() {
         description: 'Transfer ke rekening bank koperasi',
         balance: 0,
         isActive: true,
-        displayOrder: 2,
+        displayOrder: 3,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -125,7 +207,7 @@ export async function seedInitialData() {
         description: 'Transfer ke rekening bank koperasi',
         balance: 0,
         isActive: true,
-        displayOrder: 2,
+        displayOrder: 4,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -138,51 +220,6 @@ export async function seedInitialData() {
         description: 'Transfer ke rekening bank koperasi',
         balance: 0,
         isActive: true,
-        displayOrder: 2,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        code: 'qris',
-        name: 'QRIS',
-        type: 'digital',
-        icon: 'QrCode',
-        color: 'bg-blue-100 text-blue-800',
-        description: 'Scan QR dengan e-wallet atau mobile banking',
-        provider: 'midtrans',
-        requiresMidtrans: true,
-        balance: 0,
-        isActive: false,
-        displayOrder: 3,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        code: 'gopay',
-        name: 'GoPay',
-        type: 'ewallet',
-        icon: 'Smartphone',
-        color: 'bg-green-100 text-green-800',
-        description: 'Bayar dengan GoPay',
-        provider: 'midtrans',
-        requiresMidtrans: true,
-        balance: 0,
-        isActive: false,
-        displayOrder: 4,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        code: 'shopeepay',
-        name: 'ShopeePay',
-        type: 'ewallet',
-        icon: 'Wallet',
-        color: 'bg-orange-100 text-orange-800',
-        description: 'Bayar dengan ShopeePay',
-        provider: 'midtrans',
-        requiresMidtrans: true,
-        balance: 0,
-        isActive: false,
         displayOrder: 5,
         createdAt: new Date(),
         updatedAt: new Date()

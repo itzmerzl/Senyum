@@ -363,25 +363,65 @@ export default function Transaction() {
     setShowReceiptPreview(true);
   };
   
-  // Fungsi print struk setelah preview
+  // Print function to generate and print receipt
   const handlePrintReceipt = (transaction) => {
     const printWindow = window.open('', '_blank', 'width=302,height=500');
     
-    const itemsHtml = transaction.items.map(item => `
-      <tr>
-        <td colspan="2" style="font-size: 9pt; font-weight: bold; padding: 1px 0;">
-          ${item.productName}
-        </td>
-      </tr>
-      <tr>
-        <td style="font-size: 8pt; padding: 0 0 2px 0;">
-          ${item.quantity} x Rp${formatRp(item.price)}
-        </td>
-        <td style="font-size: 9pt; font-weight: bold; padding: 0 0 2px 0; text-align: right;">
-          Rp${formatRp(item.subtotal)}
-        </td>
-      </tr>
-    `).join('');
+    // Tambah fungsi ini bareng padRight & padLeft
+    const padCenter = (text, width) => {
+      const str = String(text);
+      const totalPadding = Math.max(0, width - str.length);
+      const leftPadding = Math.floor(totalPadding / 2);
+      const rightPadding = totalPadding - leftPadding;
+      return ' '.repeat(leftPadding) + str + ' '.repeat(rightPadding);
+    };
+
+    // FUNGSI PADDING YANG BENAR untuk printer thermal
+    const padRight = (text, width) => {
+      const str = String(text);
+      return str + ' '.repeat(Math.max(0, width - str.length));
+    };
+    
+    const padLeft = (text, width) => {
+      const str = String(text);
+      return ' '.repeat(Math.max(0, width - str.length)) + str;
+    };
+    
+    // Fungsi buat baris dengan alignment yang benar
+    const createRow = (label, value, isBoldValue = false, labelWidth = 15) => {
+      const TOTAL_WIDTH = 32; // Lebar thermal 58mm = sekitar 32 karakter
+      const valueStyle = isBoldValue ? 'font-weight: bold;' : '';
+      
+      // Potong label kalau kepanjangan
+      const trimmedLabel = label.length > labelWidth ? label.substring(0, labelWidth) : label;
+      const paddedLabel = padRight(trimmedLabel, labelWidth);
+      
+      // Value di kanan
+      const valueWidth = TOTAL_WIDTH - labelWidth;
+      const paddedValue = padLeft(value || '', valueWidth);
+      
+      return `<div style="font-size: 9pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 0;">${paddedLabel}${paddedValue}</div>`;
+    };
+    
+    // Items formatting
+    const itemsHtml = transaction.items.map(item => {
+      const TOTAL_WIDTH = 32;
+      
+      // Nama produk (bold, baris sendiri)
+      const itemNameRow = `<div style="font-size: 9pt; font-weight: bold; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 1px 0 0 0; padding: 0;">${item.productName}</div>`;
+      
+      // Detail: "1 x Rp16.000" (kiri) dan "Rp16.000" (kanan)
+      const leftText = `${item.quantity} x Rp${formatRp(item.price)}`;
+      const rightText = `Rp${formatRp(item.subtotal)}`;
+      
+      // Hitung padding
+      const paddingNeeded = TOTAL_WIDTH - leftText.length - rightText.length;
+      const padding = ' '.repeat(Math.max(0, paddingNeeded));
+      
+      const itemDetailRow = `<div style="font-size: 8pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0 0 2px 0; padding: 0;">${leftText}${padding}<span style="font-weight: bold;">${rightText}</span></div>`;
+      
+      return itemNameRow + itemDetailRow;
+    }).join('');
     
     const formattedDate = new Date(transaction.transactionDate).toLocaleString('id-ID', {
       day: '2-digit',
@@ -398,131 +438,70 @@ export default function Transaction() {
         <meta charset="UTF-8">
         <title>Struk - ${transaction.invoiceNumber}</title>
         <style>
-          /* RESET */
           * {
-            margin: 0 !important;
-            padding: 0 !important;
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
-            font-family: 'Courier New', monospace !important;
-            line-height: 1.1 !important;
           }
           
           body {
-            width: 58mm !important;
-            min-height: auto !important;
-            margin: 0 !important;
-            padding: 5px 3px !important;
-            background: white !important;
-            color: black !important;
-            font-size: 9pt !important;
+            width: 58mm;
+            margin: 0 auto;
+            padding: 2mm 1mm;
+            background: white;
+            color: black;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 9pt;
+            line-height: 1.3;
           }
           
           .receipt {
-            width: 58mm !important;
-            text-align: center;
-            word-wrap: break-word;
+            width: 100%;
           }
           
           .store-header {
-            margin-bottom: 5px;
+            text-align: center;
+            margin-bottom: 2mm;
           }
           
           .store-name {
-            font-size: 12pt !important;
-            font-weight: bold !important;
-            text-transform: uppercase !important;
-            margin-bottom: 1px !important;
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 0.5mm;
           }
           
           .store-address {
-            font-size: 8pt !important;
-            line-height: 1.2 !important;
-          }
-          
-          .divider {
-            text-align: center;
-            margin: 4px 0;
-            font-size: 8pt;
-            letter-spacing: -1px;
-          }
-          
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 8pt;
-            margin: 2px 0;
-          }
-          
-          .info-label {
-            text-align: left;
-          }
-          
-          .info-value {
-            text-align: right;
-            font-weight: bold;
-          }
-          
-          .items-table {
-            width: 100%;
-            margin: 5px 0;
-          }
-          
-          .items-table td {
-            padding: 1px 0;
-            vertical-align: top;
-          }
-          
-          .item-name {
-            font-weight: bold;
-            font-size: 9pt;
-            text-align: left;
-          }
-          
-          .item-detail {
-            font-size: 8pt;
-            text-align: left;
-          }
-          
-          .item-price {
-            font-weight: bold;
-            font-size: 9pt;
-            text-align: right;
-          }
-          
-          .summary-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 9pt;
-            margin: 2px 0;
-          }
-          
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 10pt;
-            font-weight: bold;
-            margin: 5px 0;
-            padding-top: 3px;
-            border-top: 2px solid #000;
-          }
-          
-          .payment-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 9pt;
-            margin: 2px 0;
-          }
-          
-          .footer {
-            margin-top: 5px;
-            padding-top: 3px;
             font-size: 8pt;
             line-height: 1.2;
           }
           
+          .divider {
+            text-align: center;
+            margin: 1mm 0;
+            font-size: 8pt;
+            letter-spacing: -0.5px;
+          }
+          
+          .content-area {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre;
+          }
+          
+          .footer {
+            text-align: center;
+            margin-top: 2mm;
+            margin-bottom: 5mm;
+            font-size: 8pt;
+          }
+
+          .bottom-spacer {
+            height: 10mm; /* Spacing buat trigger printer cut */
+            font-size: 1pt;
+            line-height: 1;
+          }
+          
           .thank-you {
             font-weight: bold;
-            margin-bottom: 1px;
           }
           
           @media print {
@@ -532,136 +511,85 @@ export default function Transaction() {
             }
             
             body {
-              width: 58mm !important;
-              padding: 2px 1px !important;
-              font-size: 8pt !important;
-            }
-            
-            .receipt {
-              width: 58mm !important;
+              width: 58mm;
+              padding: 2mm 1mm 5mm 1mm; /* Tambah padding bawah */
             }
           }
         </style>
       </head>
       <body>
         <div class="receipt">
-          <!-- HEADER -->
-          <div class="store-header">
-            <div class="store-name">KOPERASI SENYUMMU</div>
-            <div class="store-address">Jln. Pemandian No. 88</div>
-            <div class="store-address">Telp: 085183079329</div>
+        <div class="bottom-spacer">
+            &nbsp;<br>
           </div>
+          <div class="content-area">
+${padCenter('KOPERASI SENYUMMU', 32)}
+${padCenter('Jln. Pemandian No. 88', 32)}
+${padCenter('Telp: 085183079329', 32)}
+</div>
           
           <div class="divider">--------------------------------</div>
           
-          <!-- TRANSACTION INFO -->
-          <div>
-            <div class="info-row">
-              <span class="info-label">No Invoice</span>
-              <span class="info-value">${transaction.invoiceNumber}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Tanggal</span>
-              <span>${formattedDate}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Kasir</span>
-              <span>${transaction.cashierName || 'Admin'}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Pelanggan</span>
-              <span>${transaction.customerName || 'Umum'}</span>
-            </div>
-          </div>
+          <div class="content-area">
+${createRow('No Invoice', transaction.invoiceNumber, true)}
+${createRow('Tanggal', formattedDate)}
+${createRow('Kasir', transaction.cashierName || 'Admin')}
+${createRow('Pelanggan', transaction.customerName || 'Umum')}
+</div>
           
           <div class="divider">--------------------------------</div>
           
-          <!-- ITEMS -->
-          <div>
-            <table class="items-table">
-              ${itemsHtml}
-            </table>
-          </div>
+          <div class="content-area">
+${itemsHtml}
+</div>
           
           <div class="divider">--------------------------------</div>
           
-          <!-- SUMMARY -->
-          <div>
-            <div class="summary-row">
-              <span>Subtotal</span>
-              <span>Rp${formatRp(transaction.subtotal)}</span>
-            </div>
-            ${transaction.tax > 0 ? `
-            <div class="summary-row">
-              <span>Pajak</span>
-              <span>Rp${formatRp(transaction.tax)}</span>
-            </div>
-            ` : ''}
-            ${transaction.discount > 0 ? `
-            <div class="summary-row">
-              <span>Diskon</span>
-              <span>-Rp${formatRp(transaction.discount)}</span>
-            </div>
-            ` : ''}
-          </div>
-          
-          <!-- TOTAL -->
-          <div class="total-row">
-            <span>TOTAL</span>
-            <span>Rp${formatRp(transaction.total)}</span>
-          </div>
+          <div class="content-area">
+${createRow('Sub Total', `Rp${formatRp(transaction.subtotal)}`)}
+${transaction.tax > 0 ? createRow('Pajak', `Rp${formatRp(transaction.tax)}`) : ''}
+${transaction.discount > 0 ? createRow('Diskon', `-Rp${formatRp(transaction.discount)}`) : ''}
+${createRow('Total', `Rp${formatRp(transaction.total)}`)}
+</div>
           
           <div class="divider">--------------------------------</div>
           
-          <!-- PAYMENT -->
-          <div>
-            <div class="payment-row">
-              <span>Metode Bayar</span>
-              <span style="font-weight: bold;">${capitalizeFirst(transaction.paymentMethodName || transaction.paymentMethod)}</span>
-            </div>
-            <div class="payment-row">
-              <span>Dibayar</span>
-              <span>Rp${formatRp(transaction.paidAmount)}</span>
-            </div>
-            ${transaction.changeAmount > 0 ? `
-            <div class="payment-row">
-              <span>Kembali</span>
-              <span style="font-weight: bold;">Rp${formatRp(transaction.changeAmount)}</span>
-            </div>
-            ` : ''}
-          </div>
+          <div class="content-area">
+${createRow('Metode Bayar', capitalizeFirst(transaction.paymentMethodName || transaction.paymentMethod), true)}
+${createRow('Dibayar', `Rp${formatRp(transaction.paidAmount)}`)}
+${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.changeAmount)}`) : ''}
+</div>
           
           <div class="divider">--------------------------------</div>
           
-          <!-- FOOTER -->
           <div class="footer">
-            <div class="thank-you">Terima kasih atas kunjungan Anda!</div>
-            <div>Barang yang sudah dibeli</div>
-            <div>tidak dapat dikembalikan</div>
+            <div class="thank-you">Terima kasih atas kunjungan Anda</div>  
           </div>
+
+          <div class="bottom-spacer">
+            &nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>
+          </div>
+
         </div>
         
         <script>
-          document.addEventListener('DOMContentLoaded', function() {
-            window.scrollTo(0, 0);
+          window.onload = function() {
             setTimeout(function() {
               window.print();
-            }, 300);
-          });
+            }, 250);
+          };
           
           window.onafterprint = function() {
             setTimeout(function() {
-              if (!window.closed) {
-                window.close();
-              }
-            }, 200);
+              window.close();
+            }, 500);
           };
-          
+
           setTimeout(function() {
             if (!window.closed) {
               window.close();
             }
-          }, 3000);
+          }, 5000);
         </script>
       </body>
       </html>
@@ -1165,7 +1093,7 @@ export default function Transaction() {
           return (
             <div className="space-y-4">
               {/* Preview Struk */}
-              <div className="bg-white border-2 border-gray-800 rounded-none p-4 font-mono max-h-[500px] overflow-y-auto">
+              <div className="bg-white border-2 border-gray-800 rounded-none p-4 font-mono max-h-[525px] overflow-y-auto">
                 {/* Header */}
                 <div className="text-center mb-3">
                   <h2 className="text-lg font-bold uppercase tracking-wider mb-1">KOPERASI SENYUMMU</h2>
@@ -1174,7 +1102,7 @@ export default function Transaction() {
                 </div>
                 
                 {/* Divider */}
-                <div className="text-center text-xs mb-3">--------------------------------</div>
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
                 
                 {/* Transaction Info */}
                 <div className="text-xs space-y-1 mb-3">
@@ -1197,7 +1125,7 @@ export default function Transaction() {
                 </div>
                 
                 {/* Divider */}
-                <div className="text-center text-xs mb-3">--------------------------------</div>
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
                 
                 {/* Items */}
                 <div className="mb-3">
@@ -1213,12 +1141,12 @@ export default function Transaction() {
                 </div>
                 
                 {/* Divider */}
-                <div className="text-center text-xs mb-3">--------------------------------</div>
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
                 
                 {/* Summary */}
                 <div className="text-xs space-y-1 mb-2">
                   <div className="flex justify-between">
-                    <span>Subtotal</span>
+                    <span>Sub Total</span>
                     <span>Rp{formatRp(receiptToPrint.subtotal)}</span>
                   </div>
                   {receiptToPrint.tax > 0 && (
@@ -1236,15 +1164,13 @@ export default function Transaction() {
                 </div>
                 
                 {/* Total */}
-                <div className="text-center border-t-2 border-black pt-2 mb-3">
-                  <div className="flex justify-between font-bold text-sm">
-                    <span>TOTAL</span>
+                  <div className="flex justify-between text-xs mb-2">
+                    <span>Total</span>
                     <span>Rp{formatRp(receiptToPrint.total)}</span>
                   </div>
-                </div>
                 
                 {/* Divider */}
-                <div className="text-center text-xs mb-3">--------------------------------</div>
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
                 
                 {/* Payment */}
                 <div className="text-xs space-y-1 mb-3">
@@ -1265,13 +1191,11 @@ export default function Transaction() {
                 </div>
                 
                 {/* Divider */}
-                <div className="text-center text-xs mb-3">--------------------------------</div>
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
                 
                 {/* Footer */}
                 <div className="text-center text-xs">
-                  <div className="font-bold mb-1">Terima kasih atas kunjungan Anda!</div>
-                  <div>Barang yang sudah dibeli</div>
-                  <div>tidak dapat dikembalikan</div>
+                  <div className="font-bold mb-1">Terima kasih atas kunjungan Anda</div>
                 </div>
               </div>
 
@@ -1610,7 +1534,7 @@ export default function Transaction() {
                 <p className="text-xs text-gray-500 uppercase font-bold mb-3">Ringkasan Pembayaran</p>
                 <div className="space-y-2.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Subtotal</span>
+                    <span className="text-gray-700">Sub Total</span>
                     <span className="font-bold text-gray-900">{formatCurrency(selectedTransaction.subtotal)}</span>
                   </div>
                   {selectedTransaction.tax > 0 && (
