@@ -1,0 +1,706 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// --- ACCESS CONTROL (RBAC) ---
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique // e.g., 'admin', 'cashier', 'owner'
+  displayName String           // e.g., 'Administrator', 'Kasir Utama'
+  description String?
+  isSystem    Boolean          @default(false) // System roles cannot be deleted
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  code        String           @unique // e.g., 'transaction.create', 'report.view'
+  description String?
+  module      String           // e.g., 'transaction', 'auth', 'product'
+  createdAt   DateTime         @default(now())
+  
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  passwordHash String
+  fullName     String
+  email        String?
+  phone        String?
+  
+  roleId       Int
+  role         Role      @relation(fields: [roleId], references: [id])
+  
+  isActive     Boolean   @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime? // Soft Delete
+  
+  // Security fields (Phase 2)
+  failedLoginAttempts   Int       @default(0)
+  lockedUntil           DateTime?
+  passwordChangedAt     DateTime?
+  requirePasswordChange Boolean   @default(false)
+  
+  // Relations
+  activityLogs ActivityLog[]
+  cashDrawers  CashDrawer[]
+  stockOpnames StockOpname[]
+  loginHistory LoginHistory[]
+
+  @@map("users")
+}
+
+// Security: Login History (Phase 2)
+model LoginHistory {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  ipAddress   String
+  userAgent   String?  @db.Text
+  deviceInfo  String?
+  location    String?
+  status      String   // 'success', 'failed', 'blocked'
+  failReason  String?  // 'invalid_password', 'account_locked', 'rate_limited'
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@map("login_history")
+}
+
+
+// --- MASTER DATA ---
+model Unit {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique // e.g., 'Pcs', 'Box', 'Pack'
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]
+  productUnits ProductUnit[]
+
+  @@map("units")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  code        String?   @unique
+  name        String
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // Soft Delete
+
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Supplier {
+  id            Int       @id @default(autoincrement())
+  code          String?   @unique
+  name          String
+  phone         String?
+  email         String?
+  address       String?
+  bankName      String?
+  accountNumber String?
+  isActive      Boolean   @default(true)
+  lastOrderDate DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // Soft Delete
+
+  products      Product[]
+
+  @@map("suppliers")
+}
+
+model Product {
+  id            Int       @id @default(autoincrement())
+  sku           String?   @unique // Stock Keeping Unit
+  barcode       String?   // Scannable barcode (can be multiple? keep simple for now)
+  name          String
+  description   String?   @db.Text
+  image         String?
+  
+  categoryId    Int?
+  category      Category? @relation(fields: [categoryId], references: [id])
+  
+  supplierId    Int?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+
+  unitId        Int?
+  unit          Unit?     @relation(fields: [unitId], references: [id])
+
+  // Financials
+  stock         Int       @default(0)
+  minStock      Int       @default(0)
+  purchasePrice Float     @default(0) // Harga Beli (HPP saat ini)
+  sellingPrice  Float     @default(0) // Harga Jual
+  
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // Soft Delete
+
+  stockMovements   StockMovement[]
+  transactionItems TransactionItem[]
+  stockOpnameItems StockOpnameItem[]
+  
+  // New relations
+  variants         ProductVariant[]
+  tags             ProductTag[]
+  
+  // --- ENTERPRISE RELATIONS ---
+  type             String           @default("SINGLE") // SINGLE, BUNDLE, SERVICE (Using String for MySQL compatibility/simplicity)
+  productUnits     ProductUnit[]
+  batches          ProductBatch[]
+  
+  // Bundle Relations
+  bundleItems      BundleItem[]     @relation("BundleParent") // Items inside this bundle (if type=BUNDLE)
+  includedInBundles BundleItem[]    @relation("BundleChild")  // Bundles this product is part of
+
+  @@map("products")
+}
+
+// --- PRODUCT ENHANCEMENTS ---
+
+model ProductUnit {
+  id               Int      @id @default(autoincrement())
+  productId        Int
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  unitId           Int
+  unit             Unit     @relation(fields: [unitId], references: [id])
+  
+  conversionFactor Int      // e.g., 24 (1 Box = 24 Pcs)
+  purchasePrice    Float?   // Optional: Specific buy price for this unit
+  sellingPrice     Float    // Specific sell price for this unit
+  barcode          String?  // Barcode for the Box
+  
+  isDefault        Boolean  @default(false)
+  
+  @@map("product_units")
+}
+
+model ProductBatch {
+  id            Int       @id @default(autoincrement())
+  productId     Int
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  batchNumber   String?
+  expiryDate    DateTime? // Optional, some items don't expire
+  quantity      Int       // Current quantity in this batch
+  initialQty    Int       // Original quantity received
+  
+  inDate        DateTime  @default(now())
+  
+  @@map("product_batches")
+}
+
+model BundleItem {
+  id           Int      @id @default(autoincrement())
+  bundleId     Int      // Parent Product (The Hamper)
+  bundle       Product  @relation("BundleParent", fields: [bundleId], references: [id], onDelete: Cascade)
+  
+  productId    Int      // Child Product (The Item inside)
+  product      Product  @relation("BundleChild", fields: [productId], references: [id])
+  
+  quantity     Int      // How many of child needed
+  
+  @@map("bundle_items")
+}
+model ProductVariant {
+  id            Int       @id @default(autoincrement())
+  productId     Int
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  name          String    // e.g., "Red - Large", "Blue - Medium"
+  sku           String?   @unique
+  barcode       String?   @unique
+  
+  stock         Int       @default(0)
+  priceDiff     Float     @default(0) // Price difference from base product
+  
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("product_variants")
+}
+
+model ProductTag {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  tag       String   @db.VarChar(50) // "New", "Sale", "Popular", "Featured"
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([productId, tag])
+  @@map("product_tags")
+}
+
+// --- CUSTOMERS ---
+model Student {
+  id                 Int       @id @default(autoincrement())
+  
+  // AUTH - For Billing Check (Landing Page)
+  registrationNumber String    @unique // REG-2024-0001
+  billingPin         String    // Hashed 6-char alphanumeric
+  plainPin           String?   // Plain PIN for printing (can be reset by admin)
+  pinSetAt           DateTime  @default(now())
+  
+  // STUDENT IDENTIFICATION
+  fullName           String
+  gender             String?   // "L" (Laki-laki) or "P" (Perempuan)
+  photoUrl           String?   @db.LongText // Base64 image
+  className          String?   // "Kelas 1A", "Kelas 7B"
+  program            String?   // "Reguler", "Tahfidz", "Komputer"
+  
+  // GUARDIAN CONTACT (For Billing Communication)
+  guardianName       String?
+  guardianPhone      String?
+  guardianWhatsapp   String?   // Often different from phone number
+  
+  // STUDENT STATUS
+  status             String    @default("active") // 'active', 'graduated', 'inactive'
+  enrollmentDate     DateTime?
+  graduationDate     DateTime?
+  
+  // FINANCIAL (Auto-calculated from relations)
+  scholarshipPercent Float     @default(0)    // 0-100 (discount %)
+  totalLiabilities   Float     @default(0)    // Updated by app
+  totalPaid          Float     @default(0)    // Updated by app
+  balance            Float     @default(0)    // totalLiabilities - totalPaid
+  lastPaymentDate    DateTime?
+  
+  // OPTIONAL (for reference only)
+  address            String?   @db.Text
+  notes              String?   @db.Text       // Internal notes
+  
+  // TIMESTAMPS
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime? // Soft Delete
+
+  // RELATIONS
+  history            StudentHistory[] // Activity timeline
+  liabilities        Liability[]
+  payments           Payment[]
+
+  @@map("students")
+}
+
+// --- STUDENT HISTORY/TIMELINE ---
+model StudentHistory {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  action      String   // 'created', 'pin_reset', 'payment_made', 'status_changed', 'class_promoted', 'info_updated'
+  module      String   @default("student") // 'student', 'payment', 'admin'
+  description String   // Human-readable description
+  details     Json?    // Additional data (old/new values, amounts, etc.)
+  
+  performedBy String?  // User who performed the action (username or 'system')
+  
+  createdAt   DateTime @default(now())
+
+  @@map("student_history")
+  @@index([studentId])
+}
+
+// --- TRANSACTIONS & COMMERCE ---
+model Transaction {
+  id                Int       @id @default(autoincrement())
+  invoiceNumber     String    @unique
+  transactionDate   DateTime  @default(now())
+  
+  // Customer Info (Snapshot or Relation)
+  customerId        Int?      // Link to Student ID if applicable
+  customerType      String?   // 'student', 'general'
+  customerName      String?   // Snapshot name for receipt
+  
+  // Staff
+  cashierId         Int
+  
+  // Status
+  status            String    @default("pending") // pending, completed, voided, refunded
+  
+  // Payment
+  paymentMethod     String?   // code from PaymentMethod
+  paymentMethodName String?   // snapshot name
+  
+  // Totals
+  subtotal          Float     @default(0)
+  discount          Float     @default(0)
+  tax               Float     @default(0)
+  total             Float     @default(0)
+  
+  paidAmount        Float     @default(0)
+  changeAmount      Float     @default(0)
+  
+  notes             String?   @db.Text
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime? // Soft Delete (Void)
+
+  transactionItems  TransactionItem[]
+
+  @@map("transactions")
+}
+
+model TransactionItem {
+  id            Int         @id @default(autoincrement())
+  transactionId Int
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  productId     Int?
+  product       Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  // Snapshots for History Integrity
+  productName   String
+  sku           String?
+  categoryName  String?     // Snapshot category name
+  
+  quantity      Int
+  
+  costPrice     Float       @default(0) // COGS at moment of sale (Important for profit report)
+  price         Float       @default(0) // Selling Price at moment of sale
+  
+  subtotal      Float       @default(0) // quantity * price
+
+  @@map("transaction_items")
+}
+
+model PaymentMethod {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique
+  name          String
+  type          String    // 'cash', 'bank_transfer', 'qris', 'ewallet'
+  description   String?
+  icon          String?
+  color         String?
+  provider      String?   // e.g. 'Midtrans', 'Manual'
+  
+  accountNumber String?
+  accountHolder String?
+  bankCode      String?
+
+  isActive      Boolean   @default(true)
+  displayOrder  Int       @default(0)
+  
+  // Internal Balance Tracking (Simple Ledger)
+  balance       Float     @default(0) 
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("payment_methods")
+}
+
+// --- BILLING TEMPLATE SYSTEM ---
+model BillingTemplate {
+  id              Int       @id @default(autoincrement())
+  name            String    // "Buku LKS Semester Ganjil"
+  description     String?   @db.Text
+  category        String    // "Buku LKS", "Buku Ismuba", "Kitab Pondok", "Seragam", "Lainnya"
+  academicYear    String?   // "2025/2026"
+  semester        String?   // "ganjil", "genap"
+  dueDate         DateTime?
+  
+  // Options
+  applyScholarship Boolean  @default(false) // Potong sesuai % beasiswa santri
+  allowInstallment Boolean  @default(true)
+  minInstallment   Float?   // Minimal per cicilan (null = no minimum)
+  maxInstallments  Int?     // Max berapa kali cicil (null = unlimited)
+
+  // Items Checklist (e.g., Uniform parts, Books)
+  items            Json?    // [{ name: "Kain Atasan", price: 125000 }, ...]
+  
+  // Recurring (optional)
+  isRecurring      Boolean  @default(false)
+  recurringType    String?  // "monthly", "semester"
+  
+  isActive         Boolean  @default(true)
+  
+  variants         BillingVariant[]
+  liabilities      Liability[]
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@index([category])
+  @@index([academicYear])
+  @@index([semester])
+  @@index([isActive])
+  @@map("billing_templates")
+}
+
+model BillingVariant {
+  id          Int      @id @default(autoincrement())
+  templateId  Int
+  template    BillingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  classNames  String   // "Kelas 7,Kelas 8,Kelas 9" or "7,8,9"
+  programs    String?  // "Boarding,Reguler" (null = all)
+  genders     String?  // "L,P" (null = all)
+  amount      Float
+  
+  @@index([templateId])
+  @@map("billing_variants")
+}
+
+model Liability {
+  id          Int       @id @default(autoincrement())
+  studentId   Int
+  student     Student   @relation(fields: [studentId], references: [id])
+  
+  // Optional link to billing template
+  templateId  Int?
+  template    BillingTemplate? @relation(fields: [templateId], references: [id])
+  
+  title       String
+  description String?
+
+  // Items Tracking
+  items       Json?      // [{ name: "Kain Atasan", status: "delivered", deliveredAt: "...", deliveredBy: "..." }]
+
+  originalAmount Float   @default(0) // Amount before scholarship
+  discountAmount Float   @default(0) // Beasiswa discount applied
+  amount      Float     @default(0)  // Final amount (original - discount)
+  paidAmount  Float     @default(0)  // Track paid amount directly
+  
+  status      String    @default("unpaid") // unpaid, partial, paid, cancelled
+  dueDate     DateTime?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  payments    Payment[]
+
+  @@index([templateId])
+  @@map("liabilities")
+}
+
+model Payment {
+  id            Int       @id @default(autoincrement())
+  receiptNumber String    @unique
+  paymentDate   DateTime  @default(now())
+  
+  amount        Float
+  paymentMethod String    // code
+  
+  studentId     Int
+  student       Student   @relation(fields: [studentId], references: [id])
+  
+  liabilityId   Int?
+  liability     Liability? @relation(fields: [liabilityId], references: [id])
+  
+  cashierId     Int?
+  notes         String?
+  
+  createdAt     DateTime  @default(now())
+
+  @@map("payments")
+}
+
+// --- INVENTORY LOGGING ---
+model StockMovement {
+  id           Int      @id @default(autoincrement())
+  productId    Int
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  type         String   // 'in', 'out', 'adjustment'
+  quantity     Int      // Positive or Negative? Usually absolute here, and 'type' defines sign
+  balanceBefore Int?     // Optional: Snapshot of stock before move
+  balanceAfter  Int?     // Optional: Snapshot of stock after move
+  
+  reference    String?  // Invoice #, PO #, Refund #
+  reason       String?  // 'sale', 'purchase', 'resupply', 'damage', 'correction'
+  notes        String?
+  
+  createdAt    DateTime @default(now())
+  createdById  Int?     // Link to User if RBAC
+
+  @@map("stock_movements")
+}
+
+model CashDrawer {
+  id                Int      @id @default(autoincrement())
+  sessionId         String   @unique // UUID
+  
+  userId            Int?
+  user              User?    @relation(fields: [userId], references: [id])
+  userName          String?  // Snapshot
+  
+  openingBalance    Float    @default(0)
+  closingBalance    Float?
+  
+  actualBalance     Float?   // Cash count at closing
+  difference        Float?   // difference
+  
+  status            String   @default("open") // open, closed
+  
+  openedAt          DateTime @default(now())
+  closedAt          DateTime?
+  
+  notes             String?  @db.Text
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("cash_drawers")
+}
+
+// --- SYSTEM ---
+model Setting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String   @db.Text
+  category  String?  // 'general', 'payment', 'printer', 'notification'
+  dataType  String   @default("string") // 'string', 'number', 'boolean', 'json'
+  isPublic  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  type      String   // 'info', 'success', 'warning', 'error'
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  // Optional link
+  entityType String?
+  entityId   Int?
+  link       String?
+
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id])
+  userName    String?  // Snapshot
+  
+  action      String   // 'create', 'update', 'delete', 'login', 'export', 'import'
+  module      String   // 'auth', 'pos', 'inventory', 'student', 'liability', 'setting'
+  description String?
+  details     Json?    // Detailed metadata
+  
+  // Entity tracking for audit trail
+  entityType  String?  // 'Product', 'Student', 'Transaction', 'User', 'Setting'
+  entityId    Int?     // ID of the affected entity
+  entityName  String?  // Snapshot of entity name for quick lookup
+  
+  // Change tracking
+  oldValue    Json?    // Previous state (for updates)
+  newValue    Json?    // New state (for creates/updates)
+  
+  // Severity/importance
+  severity    String   @default("info") // 'info', 'warning', 'critical'
+  
+  // Request context
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([module])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([severity])
+  @@map("activity_logs")
+}
+
+// --- STOCK OPNAME (INVENTORY AUDIT) ---
+model StockOpname {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique // SO-YYYYMMDD-XXX
+  status    String    @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  notes     String?   @db.Text
+  
+  createdById Int
+  creator   User      @relation(fields: [createdById], references: [id])
+  
+  items     StockOpnameItem[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("stock_opnames")
+}
+
+model StockOpnameItem {
+  id            Int         @id @default(autoincrement())
+  opnameId      Int
+  opname        StockOpname @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+  
+  productId     Int
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  systemStock   Int         // Snapshot at creation
+  actualStock   Int?        // Input by user
+  difference    Int?        // actual - system
+  
+  notes         String?
+  
+  @@map("stock_opname_items")
+}
+
+// --- ITEM BUNDLES ---
+model ItemBundle {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  totalPrice  Float    @default(0) // Optional, can be derived
+  items       Json     // [{ name: "Buku A", price: 10000 }]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("item_bundles")
+}

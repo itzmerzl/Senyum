@@ -1,77 +1,103 @@
-import { AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { AlertTriangle, Info, CheckCircle } from 'lucide-react';
 
-export default function ConfirmDialog({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  title, 
-  message, 
-  type = 'warning',
-  confirmText = 'Konfirmasi',
-  cancelText = 'Batal',
+export default function ConfirmDialog({
+  isOpen,
+  onClose,
+  onCancel,
+  onConfirm,
+  title,
+  message,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  type = 'warning', // 'warning', 'danger', 'info', 'success'
   loading = false
 }) {
   if (!isOpen) return null;
-  
-  const icons = {
-    warning: <AlertTriangle size={48} className="text-yellow-500" />,
-    danger: <AlertTriangle size={48} className="text-red-500" />,
-    info: <Info size={48} className="text-blue-500" />,
-    success: <CheckCircle size={48} className="text-green-500" />
+
+  const handleClose = onClose || onCancel;
+
+  const typeStyles = {
+    warning: {
+      icon: AlertTriangle,
+      iconClass: 'text-yellow-600 dark:text-yellow-400',
+      bgClass: 'bg-yellow-50 dark:bg-yellow-900/20',
+      buttonClass: 'btn-primary bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-600 dark:hover:bg-yellow-700'
+    },
+    danger: {
+      icon: AlertTriangle,
+      iconClass: 'text-red-600 dark:text-red-400',
+      bgClass: 'bg-red-50 dark:bg-red-900/20',
+      buttonClass: 'btn-danger'
+    },
+    info: {
+      icon: Info,
+      iconClass: 'text-blue-600 dark:text-blue-400',
+      bgClass: 'bg-blue-50 dark:bg-blue-900/20',
+      buttonClass: 'btn-primary'
+    },
+    success: {
+      icon: CheckCircle,
+      iconClass: 'text-green-600 dark:text-green-400',
+      bgClass: 'bg-green-50 dark:bg-green-900/20',
+      buttonClass: 'btn-success'
+    }
   };
-  
-  const buttonColors = {
-    warning: 'bg-yellow-600 hover:bg-yellow-700',
-    danger: 'bg-red-600 hover:bg-red-700',
-    info: 'bg-blue-600 hover:bg-blue-700',
-    success: 'bg-green-600 hover:bg-green-700'
-  };
-  
+
+  const config = typeStyles[type] || typeStyles.warning;
+  const Icon = config.icon;
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={onClose}
-      ></div>
-      
-      {/* Dialog */}
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all fade-in">
-          <div className="p-6 text-center">
-            {/* Icon */}
-            <div className="flex justify-center mb-4">
-              {icons[type]}
+      <div
+        className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm transition-opacity"
+        onClick={handleClose}
+      />
+
+      {/* Dialog Container */}
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div
+          className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden transform transition-all"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Icon & Title */}
+          <div className="p-6">
+            <div className={`w-12 h-12 rounded-full ${config.bgClass} flex items-center justify-center mb-4`}>
+              <Icon className={`w-6 h-6 ${config.iconClass}`} />
             </div>
-            
-            {/* Title */}
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               {title}
             </h3>
-            
-            {/* Message */}
-            <p className="text-gray-600 mb-6">
+
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               {message}
             </p>
-            
-            {/* Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={onClose}
-                disabled={loading}
-                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors disabled:opacity-50"
-              >
-                {cancelText}
-              </button>
-              <button
-                onClick={onConfirm}
-                disabled={loading}
-                className={`flex-1 px-4 py-2 ${buttonColors[type]} text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
-              >
-                {loading && <div className="spinner w-4 h-4 border-2"></div>}
-                {confirmText}
-              </button>
-            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+            <button
+              onClick={handleClose}
+              disabled={loading}
+              className="btn-secondary"
+            >
+              {cancelText}
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              className={`${config.buttonClass} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Processing...</span>
+                </div>
+              ) : (
+                confirmText
+              )}
+            </button>
           </div>
         </div>
       </div>

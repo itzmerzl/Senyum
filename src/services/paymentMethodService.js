@@ -1,9 +1,9 @@
-import db from '../config/database';
+import api from '../utils/apiClient';
 
 // Get all payment methods
 export async function getAllPaymentMethods() {
   try {
-    const methods = await db.paymentMethods.toArray();
+    const methods = await api.get('paymentMethods');
     return methods.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   } catch (error) {
     console.error('Error fetching payment methods:', error);
@@ -14,9 +14,8 @@ export async function getAllPaymentMethods() {
 // Get active payment methods only
 export async function getActivePaymentMethods() {
   try {
-    const allMethods = await db.paymentMethods.toArray();
-    const activeMethods = allMethods.filter(method => method.isActive === true);
-    return activeMethods.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    const methods = await api.get('paymentMethods?isActive=true');
+    return methods.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   } catch (error) {
     console.error('Error fetching active payment methods:', error);
     throw new Error('Gagal mengambil metode pembayaran aktif');
@@ -25,19 +24,11 @@ export async function getActivePaymentMethods() {
 
 /**
  * Get payment method by code
- * ✅ FIXED: Use Dexie instead of IndexedDB native
  */
 export async function getPaymentMethodByCode(code) {
   try {
-    // Get all methods and find by code (since code is not indexed)
-    const allMethods = await db.paymentMethods.toArray();
-    const method = allMethods.find(m => m.code === code);
-    
-    if (!method) {
-      return null; // Return null instead of throwing, let caller handle
-    }
-    
-    return method;
+    const methods = await api.get(`paymentMethods?code=${code}`);
+    return methods[0] || null;
   } catch (error) {
     console.error('Error getting payment method by code:', error);
     throw error;
@@ -52,30 +43,25 @@ export async function createPaymentMethod(methodData) {
     if (existing) {
       throw new Error('Kode metode pembayaran sudah ada');
     }
-    
-    // Validate Midtrans requirement
+
+    // Validate Midtrans requirement (Settings call)
     if (methodData.requiresMidtrans) {
-      const midtransEnabled = await db.settings
-        .where('key')
-        .equals('midtrans_enabled')
-        .first();
-      
-      if (!midtransEnabled || !midtransEnabled.value) {
+      const midtransEnabled = await api.get('settings?key=midtrans_enabled');
+      if (!midtransEnabled || midtransEnabled.length === 0 || !midtransEnabled[0].value) {
         throw new Error('Midtrans belum dikonfigurasi. Aktifkan Midtrans di Settings terlebih dahulu.');
       }
     }
-    
+
     const method = {
       ...methodData,
-      balance: 0, // Initialize balance
+      balance: 0,
       isActive: methodData.isActive !== false,
-      displayOrder: methodData.displayOrder || 999,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      displayOrder: parseInt(methodData.displayOrder) || 999,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
-    
-    const id = await db.paymentMethods.add(method);
-    return { id, ...method };
+
+    return await api.post('paymentMethods', method);
   } catch (error) {
     console.error('Error creating payment method:', error);
     throw error;
@@ -85,37 +71,11 @@ export async function createPaymentMethod(methodData) {
 // Update payment method
 export async function updatePaymentMethod(id, methodData) {
   try {
-    const method = await db.paymentMethods.get(id);
-    if (!method) {
-      throw new Error('Metode pembayaran tidak ditemukan');
-    }
-    
-    // Check duplicate code if changed
-    if (methodData.code && methodData.code !== method.code) {
-      const existing = await getPaymentMethodByCode(methodData.code);
-      if (existing && existing.id !== id) {
-        throw new Error('Kode metode pembayaran sudah digunakan');
-      }
-    }
-    
-    // Validate Midtrans requirement
-    if (methodData.isActive && (methodData.requiresMidtrans || method.requiresMidtrans)) {
-      const midtransEnabled = await db.settings
-        .where('key')
-        .equals('midtrans_enabled')
-        .first();
-      
-      if (!midtransEnabled || !midtransEnabled.value) {
-        throw new Error('Midtrans belum dikonfigurasi. Tidak dapat mengaktifkan metode ini.');
-      }
-    }
-    
-    await db.paymentMethods.update(id, {
+    const updated = await api.put(`paymentMethods/${id}`, {
       ...methodData,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
-    
-    return await db.paymentMethods.get(id);
+    return updated;
   } catch (error) {
     console.error('Error updating payment method:', error);
     throw error;
@@ -125,22 +85,16 @@ export async function updatePaymentMethod(id, methodData) {
 // Delete payment method
 export async function deletePaymentMethod(id) {
   try {
-    const method = await db.paymentMethods.get(id);
-    if (!method) {
-      throw new Error('Metode pembayaran tidak ditemukan');
-    }
-    
+    const method = await api.get(`paymentMethods/${id}`);
+    if (!method) throw new Error('Metode pembayaran tidak ditemukan');
+
     // Check if used in transactions
-    const usedInTransactions = await db.transactions
-      .where('paymentMethod')
-      .equals(method.code)
-      .count();
-    
-    if (usedInTransactions > 0) {
-      throw new Error(`Metode pembayaran ini digunakan di ${usedInTransactions} transaksi. Tidak dapat dihapus. Nonaktifkan saja jika tidak ingin digunakan lagi.`);
+    const transactions = await api.get(`transactions?paymentMethod=${method.code}`);
+    if (transactions.length > 0) {
+      throw new Error(`Metode pembayaran ini digunakan di ${transactions.length} transaksi. Tidak dapat dihapus.`);
     }
-    
-    await db.paymentMethods.delete(id);
+
+    await api.delete(`paymentMethods/${id}`);
     return true;
   } catch (error) {
     console.error('Error deleting payment method:', error);
@@ -151,30 +105,16 @@ export async function deletePaymentMethod(id) {
 // Toggle payment method status
 export async function togglePaymentMethodStatus(id) {
   try {
-    const method = await db.paymentMethods.get(id);
-    if (!method) {
-      throw new Error('Metode pembayaran tidak ditemukan');
-    }
-    
+    const method = await api.get(`paymentMethods/${id}`);
+    if (!method) throw new Error('Metode pembayaran tidak ditemukan');
+
     const newStatus = !method.isActive;
-    
-    // Validate Midtrans if activating
-    if (newStatus && method.requiresMidtrans) {
-      const midtransEnabled = await db.settings
-        .where('key')
-        .equals('midtrans_enabled')
-        .first();
-      
-      if (!midtransEnabled || !midtransEnabled.value) {
-        throw new Error('Midtrans belum dikonfigurasi. Tidak dapat mengaktifkan metode ini.');
-      }
-    }
-    
-    await db.paymentMethods.update(id, {
+
+    await api.put(`paymentMethods/${id}`, {
       isActive: newStatus,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
-    
+
     return newStatus;
   } catch (error) {
     console.error('Error toggling payment method status:', error);
@@ -185,11 +125,10 @@ export async function togglePaymentMethodStatus(id) {
 // Update display order
 export async function updateDisplayOrder(id, newOrder) {
   try {
-    await db.paymentMethods.update(id, {
+    await api.put(`paymentMethods/${id}`, {
       displayOrder: newOrder,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
-    
     return true;
   } catch (error) {
     console.error('Error updating display order:', error);
@@ -198,53 +137,33 @@ export async function updateDisplayOrder(id, newOrder) {
 }
 
 /**
- * ✅ FIXED: Update payment method balance using Dexie
- * @param {string} code - Payment method code
- * @param {number} amount - Amount to add/subtract
- * @param {string} type - 'add' or 'subtract'
+ * Update payment method balance
  */
 export async function updatePaymentMethodBalance(code, amount, type = 'add') {
   try {
-    // Get payment method by code
     const method = await getPaymentMethodByCode(code);
-    if (!method) {
-      throw new Error(`Metode pembayaran "${code}" tidak ditemukan`);
-    }
-    
-    const currentBalance = method.balance || 0;
-    const newBalance = type === 'add' 
-      ? currentBalance + amount 
+    if (!method) throw new Error(`Metode pembayaran "${code}" tidak ditemukan`);
+
+    const currentBalance = parseFloat(method.balance) || 0;
+    const newBalance = type === 'add'
+      ? currentBalance + amount
       : currentBalance - amount;
-    
-    // Don't allow negative balance
-    if (newBalance < 0) {
-      console.warn(`Warning: Balance for ${method.name} would be negative: ${newBalance}`);
-      // Uncomment if you want to prevent negative balance:
-      // throw new Error('Saldo tidak boleh negatif');
-    }
-    
-    // Update balance
-    await db.paymentMethods.update(method.id, {
+
+    await api.put(`paymentMethods/${method.id}`, {
       balance: newBalance,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
-    
+
     // Log activity
-    await db.activityLogs.add({
-      userId: 1, // TODO: Get from auth context
+    await api.post('activityLogs', {
+      userId: 1,
       action: type === 'add' ? 'balance_increase' : 'balance_decrease',
       module: 'payment_method',
-      details: {
-        paymentMethodCode: code,
-        paymentMethodName: method.name,
-        amount: amount,
-        oldBalance: currentBalance,
-        newBalance: newBalance,
-        type: type
-      },
-      createdAt: new Date()
+      description: `${type === 'add' ? 'Penambahan' : 'Pengurangan'} saldo ${method.name} senilai ${amount}`,
+      metadata: JSON.stringify({ code, amount, oldBalance: currentBalance, newBalance }),
+      createdAt: new Date().toISOString()
     });
-    
+
     return newBalance;
   } catch (error) {
     console.error('Error updating payment method balance:', error);
@@ -253,20 +172,16 @@ export async function updatePaymentMethodBalance(code, amount, type = 'add') {
 }
 
 /**
- * ✅ FIXED: Update payment method balance by ID (for Transaction)
- * @param {number} id - Payment method ID
- * @param {object} data - Balance update data
+ * Update payment method balance by ID
  */
 export async function updatePaymentMethodBalanceById(id, data) {
   try {
-    const method = await db.paymentMethods.get(id);
-    if (!method) {
-      throw new Error('Metode pembayaran tidak ditemukan');
-    }
-    
-    let newBalance = method.balance || 0;
-    
-    // Calculate new balance based on adjustment type
+    const method = await api.get(`paymentMethods/${id}`);
+    if (!method) throw new Error('Metode pembayaran tidak ditemukan');
+
+    let currentBalance = parseFloat(method.balance) || 0;
+    let newBalance = currentBalance;
+
     switch (data.adjustmentType) {
       case 'payment_confirmed':
       case 'add':
@@ -282,30 +197,23 @@ export async function updatePaymentMethodBalanceById(id, data) {
       default:
         throw new Error('Invalid adjustment type');
     }
-    
-    // Update balance
-    await db.paymentMethods.update(id, {
+
+    await api.put(`paymentMethods/${id}`, {
       balance: newBalance,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
-    
+
     // Log activity
-    await db.activityLogs.add({
-      userId: 1, // TODO: Get from auth
+    await api.post('activityLogs', {
+      userId: 1,
       action: data.adjustmentType,
       module: 'payment_method',
-      details: {
-        paymentMethodId: id,
-        paymentMethodName: method.name,
-        amount: data.amount,
-        oldBalance: method.balance || 0,
-        newBalance: newBalance,
-        notes: data.notes || ''
-      },
-      createdAt: new Date()
+      description: `Penyesuaian saldo ${method.name}: ${data.adjustmentType}`,
+      metadata: JSON.stringify({ id, amount: data.amount, oldBalance: currentBalance, newBalance }),
+      createdAt: new Date().toISOString()
     });
-    
-    return await db.paymentMethods.get(id);
+
+    return await api.get(`paymentMethods/${id}`);
   } catch (error) {
     console.error('Error updating payment method balance by ID:', error);
     throw error;
@@ -316,18 +224,18 @@ export async function updatePaymentMethodBalanceById(id, data) {
 export async function getPaymentMethodBalance(code) {
   try {
     const method = await getPaymentMethodByCode(code);
-    return method?.balance || 0;
+    return parseFloat(method?.balance) || 0;
   } catch (error) {
     console.error('Error getting payment method balance:', error);
     return 0;
   }
 }
 
-// Get total balance across all payment methods
+// Get total balance
 export async function getTotalBalance() {
   try {
-    const methods = await db.paymentMethods.toArray();
-    return methods.reduce((sum, method) => sum + (method.balance || 0), 0);
+    const methods = await api.get('paymentMethods');
+    return methods.reduce((sum, method) => sum + (parseFloat(method.balance) || 0), 0);
   } catch (error) {
     console.error('Error getting total balance:', error);
     return 0;
@@ -335,44 +243,33 @@ export async function getTotalBalance() {
 }
 
 /**
- * Manual balance adjustment (untuk kasir ambil uang, setor bank, dll)
- * ✅ FIXED: Use Dexie
+ * Manual balance adjustment
  */
 export async function adjustPaymentMethodBalance(code, amount, reason, userId) {
   try {
     const method = await getPaymentMethodByCode(code);
-    if (!method) {
-      throw new Error('Metode pembayaran tidak ditemukan');
-    }
-    
-    const currentBalance = method.balance || 0;
-    const newBalance = currentBalance + amount; // Can be positive or negative
-    
-    if (newBalance < 0) {
-      throw new Error('Saldo tidak boleh negatif');
-    }
-    
-    await db.paymentMethods.update(method.id, {
+    if (!method) throw new Error('Metode pembayaran tidak ditemukan');
+
+    const currentBalance = parseFloat(method.balance) || 0;
+    const newBalance = currentBalance + amount;
+
+    if (newBalance < 0) throw new Error('Saldo tidak boleh negatif');
+
+    await api.put(`paymentMethods/${method.id}`, {
       balance: newBalance,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
-    
+
     // Log adjustment
-    await db.activityLogs.add({
+    await api.post('activityLogs', {
       userId: userId || 1,
       action: 'balance_adjustment',
       module: 'payment_method',
-      details: {
-        paymentMethodCode: code,
-        paymentMethodName: method.name,
-        amount: amount,
-        oldBalance: currentBalance,
-        newBalance: newBalance,
-        reason: reason
-      },
-      createdAt: new Date()
+      description: `Penyesuaian saldo manual ${method.name}: ${reason}`,
+      metadata: JSON.stringify({ code, amount, oldBalance: currentBalance, newBalance, reason }),
+      createdAt: new Date().toISOString()
     });
-    
+
     return newBalance;
   } catch (error) {
     console.error('Error adjusting payment method balance:', error);
@@ -383,7 +280,7 @@ export async function adjustPaymentMethodBalance(code, amount, reason, userId) {
 // Get all bank accounts
 export async function getAllBankAccounts() {
   try {
-    const accounts = await db.bankAccounts.toArray();
+    const accounts = await api.get('bankAccounts');
     return accounts.sort((a, b) => a.bankName.localeCompare(b.bankName));
   } catch (error) {
     console.error('Error fetching bank accounts:', error);
@@ -394,9 +291,8 @@ export async function getAllBankAccounts() {
 // Get active bank accounts
 export async function getActiveBankAccounts() {
   try {
-    const allAccounts = await db.bankAccounts.toArray();
-    const activeAccounts = allAccounts.filter(account => account.isActive === true);
-    return activeAccounts.sort((a, b) => a.bankName.localeCompare(b.bankName));
+    const accounts = await api.get('bankAccounts?isActive=true');
+    return accounts.sort((a, b) => a.bankName.localeCompare(b.bankName));
   } catch (error) {
     console.error('Error fetching active bank accounts:', error);
     throw new Error('Gagal mengambil akun bank aktif');
@@ -409,12 +305,11 @@ export async function createBankAccount(accountData) {
     const account = {
       ...accountData,
       isActive: accountData.isActive !== false,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
-    
-    const id = await db.bankAccounts.add(account);
-    return { id, ...account };
+
+    return await api.post('bankAccounts', account);
   } catch (error) {
     console.error('Error creating bank account:', error);
     throw new Error('Gagal menambahkan akun bank');
@@ -424,17 +319,10 @@ export async function createBankAccount(accountData) {
 // Update bank account
 export async function updateBankAccount(id, accountData) {
   try {
-    const account = await db.bankAccounts.get(id);
-    if (!account) {
-      throw new Error('Akun bank tidak ditemukan');
-    }
-    
-    await db.bankAccounts.update(id, {
+    return await api.put(`bankAccounts/${id}`, {
       ...accountData,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
-    
-    return await db.bankAccounts.get(id);
   } catch (error) {
     console.error('Error updating bank account:', error);
     throw error;
@@ -444,7 +332,7 @@ export async function updateBankAccount(id, accountData) {
 // Delete bank account
 export async function deleteBankAccount(id) {
   try {
-    await db.bankAccounts.delete(id);
+    await api.delete(`bankAccounts/${id}`);
     return true;
   } catch (error) {
     console.error('Error deleting bank account:', error);
@@ -455,16 +343,20 @@ export async function deleteBankAccount(id) {
 // Check if Midtrans is configured
 export async function checkMidtransConfig() {
   try {
-    const clientKey = await db.settings.where('key').equals('midtrans_client_key').first();
-    const serverKey = await db.settings.where('key').equals('midtrans_server_key').first();
-    const enabled = await db.settings.where('key').equals('midtrans_enabled').first();
-    
+    const settings = await api.get('settings');
+    const findSetting = (key) => settings.find(s => s.key === key);
+
+    const clientKey = findSetting('midtrans_client_key');
+    const serverKey = findSetting('midtrans_server_key');
+    const enabled = findSetting('midtrans_enabled');
+    const environment = findSetting('midtrans_environment');
+
     return {
       isConfigured: !!(clientKey?.value && serverKey?.value),
-      isEnabled: enabled?.value === true,
+      isEnabled: enabled?.value === true || enabled?.value === 'true',
       clientKey: clientKey?.value || '',
       serverKey: serverKey?.value || '',
-      environment: (await db.settings.where('key').equals('midtrans_environment').first())?.value || 'sandbox'
+      environment: environment?.value || 'sandbox'
     };
   } catch (error) {
     console.error('Error checking Midtrans config:', error);

@@ -1,16 +1,11 @@
-import db from '../config/database';
+import api from '../utils/apiClient';
 import { generateCashDrawerSessionId } from '../utils/generators';
-import { logActivity } from './activityLogService';
 
 // Get active cash drawer session
 export async function getActiveSession() {
   try {
-    const session = await db.cashDrawer
-      .where('status')
-      .equals('open')
-      .first();
-    
-    return session || null;
+    const sessions = await api.get('cashDrawer?status=open');
+    return sessions[0] || null;
   } catch (error) {
     console.error('Error fetching active session:', error);
     throw new Error('Gagal mengambil sesi kasir aktif');
@@ -25,10 +20,10 @@ export async function openCashDrawer(openingBalance, notes = '') {
     if (activeSession) {
       throw new Error('Kasir sudah dibuka. Tutup kasir terlebih dahulu.');
     }
-    
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const sessionId = await generateCashDrawerSessionId();
-    
+    const sessionId = generateCashDrawerSessionId();
+
     const session = {
       sessionId,
       cashierId: currentUser.id || null,
@@ -43,27 +38,28 @@ export async function openCashDrawer(openingBalance, notes = '') {
       totalQris: 0,
       totalTransactions: 0,
       status: 'open',
-      openedAt: new Date(),
+      openedAt: new Date().toISOString(),
       closedAt: null,
       openingNotes: notes,
       closingNotes: '',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
-    
-    const id = await db.cashDrawer.add(session);
-    
+
+    const newSession = await api.post('cashDrawer', session);
+
     // Log activity
-    await logActivity({
-      userId: currentUser.id,
+    await api.post('activityLogs', {
+      userId: currentUser.id || 1,
       action: 'open',
       module: 'cash_drawer',
       description: `Membuka kasir dengan saldo awal ${openingBalance}`,
-      metadata: { sessionId, openingBalance }
+      metadata: JSON.stringify({ sessionId, openingBalance }),
+      createdAt: new Date().toISOString()
     });
-    
-    return { id, ...session };
-    
+
+    return newSession;
+
   } catch (error) {
     console.error('Error opening cash drawer:', error);
     throw error;
@@ -74,41 +70,40 @@ export async function openCashDrawer(openingBalance, notes = '') {
 export async function closeCashDrawer(actualBalance, closingNotes = '') {
   try {
     const session = await getActiveSession();
-    
     if (!session) {
       throw new Error('Tidak ada sesi kasir yang aktif');
     }
-    
-    // Get today's transactions
+
+    // Get today's transactions from API
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    const transactions = await db.transactions
-      .where('transactionDate')
-      .between(today, new Date())
-      .and(t => t.status === 'completed')
-      .toArray();
-    
+
+    const allTransactions = await api.get('transactions');
+    const transactions = allTransactions.filter(t =>
+      new Date(t.transactionDate) >= today &&
+      t.status === 'completed'
+    );
+
     // Calculate totals
     const totalCash = transactions
       .filter(t => t.paymentMethod === 'cash')
-      .reduce((sum, t) => sum + t.total, 0);
-    
+      .reduce((sum, t) => sum + (t.total || 0), 0);
+
     const totalCard = transactions
       .filter(t => t.paymentMethod === 'card')
-      .reduce((sum, t) => sum + t.total, 0);
-    
+      .reduce((sum, t) => sum + (t.total || 0), 0);
+
     const totalQris = transactions
       .filter(t => t.paymentMethod === 'qris')
-      .reduce((sum, t) => sum + t.total, 0);
-    
+      .reduce((sum, t) => sum + (t.total || 0), 0);
+
     const totalTransactions = transactions.length;
-    const closingBalance = session.openingBalance + totalCash;
+    const closingBalance = (parseFloat(session.openingBalance) || 0) + totalCash;
     const expectedBalance = closingBalance;
     const difference = parseFloat(actualBalance) - expectedBalance;
-    
-    // Update session
-    await db.cashDrawer.update(session.id, {
+
+    // Update session via API
+    const updatedSession = await api.put(`cashDrawer/${session.id}`, {
       closingBalance,
       expectedBalance,
       actualBalance: parseFloat(actualBalance),
@@ -118,28 +113,29 @@ export async function closeCashDrawer(actualBalance, closingNotes = '') {
       totalQris,
       totalTransactions,
       status: 'closed',
-      closedAt: new Date(),
+      closedAt: new Date().toISOString(),
       closingNotes,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
-    
+
     // Log activity
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    await logActivity({
-      userId: currentUser.id,
+    await api.post('activityLogs', {
+      userId: currentUser.id || 1,
       action: 'close',
       module: 'cash_drawer',
       description: `Menutup kasir dengan saldo akhir ${actualBalance}`,
-      metadata: {
+      metadata: JSON.stringify({
         sessionId: session.sessionId,
         expectedBalance,
         actualBalance,
         difference
-      }
+      }),
+      createdAt: new Date().toISOString()
     });
-    
-    return await db.cashDrawer.get(session.id);
-    
+
+    return updatedSession;
+
   } catch (error) {
     console.error('Error closing cash drawer:', error);
     throw error;
@@ -149,7 +145,7 @@ export async function closeCashDrawer(actualBalance, closingNotes = '') {
 // Get cash drawer history
 export async function getCashDrawerHistory() {
   try {
-    const history = await db.cashDrawer.toArray();
+    const history = await api.get('cashDrawer');
     return history.sort((a, b) => new Date(b.openedAt) - new Date(a.openedAt));
   } catch (error) {
     console.error('Error fetching cash drawer history:', error);
@@ -160,16 +156,11 @@ export async function getCashDrawerHistory() {
 // Get cash drawer by session ID
 export async function getCashDrawerBySessionId(sessionId) {
   try {
-    const session = await db.cashDrawer
-      .where('sessionId')
-      .equals(sessionId)
-      .first();
-    
-    if (!session) {
+    const sessions = await api.get(`cashDrawer?sessionId=${sessionId}`);
+    if (sessions.length === 0) {
       throw new Error('Sesi kasir tidak ditemukan');
     }
-    
-    return session;
+    return sessions[0];
   } catch (error) {
     console.error('Error fetching cash drawer session:', error);
     throw error;
@@ -179,33 +170,30 @@ export async function getCashDrawerBySessionId(sessionId) {
 // Get cash drawer statistics
 export async function getCashDrawerStats(startDate, endDate) {
   try {
-    let sessions = await db.cashDrawer
-      .where('status')
-      .equals('closed')
-      .toArray();
-    
+    let sessions = await api.get('cashDrawer?status=closed');
+
     // Filter by date range if provided
     if (startDate) {
-      sessions = sessions.filter(s => 
+      sessions = sessions.filter(s =>
         new Date(s.openedAt) >= new Date(startDate)
       );
     }
     if (endDate) {
-      sessions = sessions.filter(s => 
+      sessions = sessions.filter(s =>
         new Date(s.closedAt) <= new Date(endDate)
       );
     }
-    
+
     const totalSessions = sessions.length;
-    const totalRevenue = sessions.reduce((sum, s) => 
-      sum + s.totalCash + s.totalCard + s.totalQris, 0
+    const totalRevenue = sessions.reduce((sum, s) =>
+      sum + (parseFloat(s.totalCash) || 0) + (parseFloat(s.totalCard) || 0) + (parseFloat(s.totalQris) || 0), 0
     );
-    const totalCash = sessions.reduce((sum, s) => sum + s.totalCash, 0);
-    const totalCard = sessions.reduce((sum, s) => sum + s.totalCard, 0);
-    const totalQris = sessions.reduce((sum, s) => sum + s.totalQris, 0);
-    const totalTransactions = sessions.reduce((sum, s) => sum + s.totalTransactions, 0);
-    const totalDifference = sessions.reduce((sum, s) => sum + s.difference, 0);
-    
+    const totalCash = sessions.reduce((sum, s) => sum + (parseFloat(s.totalCash) || 0), 0);
+    const totalCard = sessions.reduce((sum, s) => sum + (parseFloat(s.totalCard) || 0), 0);
+    const totalQris = sessions.reduce((sum, s) => sum + (parseFloat(s.totalQris) || 0), 0);
+    const totalTransactions = sessions.reduce((sum, s) => sum + (parseInt(s.totalTransactions) || 0), 0);
+    const totalDifference = sessions.reduce((sum, s) => sum + (parseFloat(s.difference) || 0), 0);
+
     return {
       totalSessions,
       totalRevenue,
@@ -217,7 +205,7 @@ export async function getCashDrawerStats(startDate, endDate) {
       averageRevenue: totalSessions > 0 ? totalRevenue / totalSessions : 0,
       averageTransactions: totalSessions > 0 ? totalTransactions / totalSessions : 0
     };
-    
+
   } catch (error) {
     console.error('Error fetching cash drawer stats:', error);
     throw new Error('Gagal mengambil statistik kasir');

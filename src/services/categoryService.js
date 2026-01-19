@@ -1,26 +1,22 @@
-import db from '../config/database';
+import api from '../utils/apiClient';
 
 // Generate unique category code
 export const generateCategoryCode = async () => {
   try {
-    // Get all categories
-    const categories = await db.categories.toArray();
-    
-    // Filter categories yang punya code dengan pattern CAT/XXX
-    const validCodes = categories.filter(cat => 
+    const categories = await api.get('categories');
+
+    const validCodes = categories.filter(cat =>
       cat.code && cat.code.startsWith('CAT/')
     );
-    
-    // Ambil semua nomor urut
+
     const sequences = validCodes.map(cat => {
       const parts = cat.code.split('/');
       return parseInt(parts[1]) || 0;
     });
-    
-    // Cari nomor tertinggi
+
     const maxSequence = sequences.length > 0 ? Math.max(...sequences) : 0;
     const nextSequence = (maxSequence + 1).toString().padStart(3, '0');
-    
+
     return `CAT/${nextSequence}`;
   } catch (error) {
     console.error('Error generating category code:', error);
@@ -31,8 +27,8 @@ export const generateCategoryCode = async () => {
 // Get all categories
 export const getAllCategories = async () => {
   try {
-    const categories = await db.categories.toArray();
-    return categories.sort((a, b) => b.id - a.id);
+    const categories = await api.get('categories');
+    return categories; // Already sorted by backend (ID desc)
   } catch (error) {
     console.error('Error getting categories:', error);
     throw error;
@@ -42,7 +38,7 @@ export const getAllCategories = async () => {
 // Get active categories only
 export const getActiveCategories = async () => {
   try {
-    const categories = await db.categories.where('isActive').equals(true).toArray();
+    const categories = await api.get('categories?isActive=true');
     return categories.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     console.error('Error getting active categories:', error);
@@ -53,7 +49,7 @@ export const getActiveCategories = async () => {
 // Get category by ID
 export const getCategoryById = async (id) => {
   try {
-    return await db.categories.get(id);
+    return await api.get(`categories/${id}`);
   } catch (error) {
     console.error('Error getting category:', error);
     throw error;
@@ -63,7 +59,8 @@ export const getCategoryById = async (id) => {
 // Get category by code
 export const getCategoryByCode = async (code) => {
   try {
-    return await db.categories.where('code').equals(code).first();
+    const categories = await api.get(`categories?code=${code}`);
+    return categories[0] || null;
   } catch (error) {
     console.error('Error getting category by code:', error);
     throw error;
@@ -73,41 +70,28 @@ export const getCategoryByCode = async (code) => {
 // Create new category
 export const createCategory = async (categoryData) => {
   try {
-    // Validate required fields
     if (!categoryData.name || !categoryData.name.trim()) {
       throw new Error('Nama kategori wajib diisi');
     }
 
     // Check for duplicate name
-    const existingName = await db.categories
-      .where('name')
-      .equalsIgnoreCase(categoryData.name.trim())
-      .first();
-    
-    if (existingName) {
+    const existing = await api.get(`categories?name=${categoryData.name.trim()}`);
+    if (existing.length > 0) {
       throw new Error('Nama kategori sudah ada');
     }
 
-    // Generate code if not provided
     if (!categoryData.code) {
       categoryData.code = await generateCategoryCode();
     }
 
-    // Check for duplicate code
-    const existingCode = await getCategoryByCode(categoryData.code);
-    if (existingCode) {
-      throw new Error('Kode kategori sudah ada');
-    }
-
-    const category = {
+    const newCategory = {
       ...categoryData,
       name: categoryData.name.trim(),
       isActive: categoryData.isActive !== false,
       createdAt: new Date().toISOString()
     };
 
-    const id = await db.categories.add(category);
-    return { id, ...category };
+    return await api.post('categories', newCategory);
   } catch (error) {
     console.error('Error creating category:', error);
     throw error;
@@ -117,31 +101,7 @@ export const createCategory = async (categoryData) => {
 // Update category
 export const updateCategory = async (id, categoryData) => {
   try {
-    const existing = await getCategoryById(id);
-    if (!existing) {
-      throw new Error('Kategori tidak ditemukan');
-    }
-
-    // Validate name if changed
-    if (categoryData.name && categoryData.name !== existing.name) {
-      const duplicate = await db.categories
-        .where('name')
-        .equalsIgnoreCase(categoryData.name.trim())
-        .first();
-      
-      if (duplicate && duplicate.id !== id) {
-        throw new Error('Nama kategori sudah ada');
-      }
-    }
-
-    const updatedCategory = {
-      ...categoryData,
-      name: categoryData.name ? categoryData.name.trim() : existing.name,
-      updatedAt: new Date().toISOString()
-    };
-
-    await db.categories.update(id, updatedCategory);
-    return { id, ...existing, ...updatedCategory };
+    return await api.put(`categories/${id}`, categoryData);
   } catch (error) {
     console.error('Error updating category:', error);
     throw error;
@@ -152,13 +112,12 @@ export const updateCategory = async (id, categoryData) => {
 export const deleteCategory = async (id) => {
   try {
     // Check if category is used in products
-    // TODO: Uncomment when products table is ready
-    // const productsCount = await db.products.where('categoryId').equals(id).count();
-    // if (productsCount > 0) {
-    //   throw new Error(`Kategori tidak dapat dihapus karena masih digunakan oleh ${productsCount} produk`);
-    // }
+    const products = await api.get(`products?categoryId=${id}`);
+    if (products.length > 0) {
+      throw new Error(`Kategori tidak dapat dihapus karena masih digunakan oleh ${products.length} produk`);
+    }
 
-    await db.categories.delete(id);
+    await api.delete(`categories/${id}`);
     return true;
   } catch (error) {
     console.error('Error deleting category:', error);
@@ -170,15 +129,9 @@ export const deleteCategory = async (id) => {
 export const toggleCategoryStatus = async (id) => {
   try {
     const category = await getCategoryById(id);
-    if (!category) {
-      throw new Error('Kategori tidak ditemukan');
-    }
+    if (!category) throw new Error('Kategori tidak ditemukan');
 
-    await db.categories.update(id, {
-      isActive: !category.isActive,
-      updatedAt: new Date().toISOString()
-    });
-
+    await api.put(`categories/${id}`, { isActive: !category.isActive });
     return !category.isActive;
   } catch (error) {
     console.error('Error toggling category status:', error);
@@ -189,8 +142,8 @@ export const toggleCategoryStatus = async (id) => {
 // Get category statistics
 export const getCategoryStats = async () => {
   try {
-    const categories = await db.categories.toArray();
-    
+    const categories = await api.get('categories');
+
     return {
       total: categories.length,
       active: categories.filter(c => c.isActive).length,
@@ -206,7 +159,7 @@ export const getCategoryStats = async () => {
 export const exportCategories = async () => {
   try {
     const categories = await getAllCategories();
-    
+
     return categories.map(cat => ({
       'Kode': cat.code,
       'Nama Kategori': cat.name,

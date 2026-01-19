@@ -1,245 +1,203 @@
-import db from '../config/database';
+import api from '../utils/apiClient';
 
-// Get all students
-export const getAllStudents = async (filters = {}) => {
-  try {
-    let query = db.students;
-    
-    // Filter by status
-    if (filters.status) {
-      query = query.where('status').equals(filters.status);
-    }
-    
-    // Filter by program
-    if (filters.program) {
-      query = query.where('program').equals(filters.program);
-    }
-    
-    // Filter by gender
-    if (filters.gender) {
-      query = query.where('gender').equals(filters.gender);
-    }
-    
-    // Filter by class
-    if (filters.className) {
-      query = query.where('className').equals(filters.className);
-    }
-    
-    const students = await query.toArray();
-    
-    // Search by name or registration number
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      return students.filter(student => 
-        student.fullName.toLowerCase().includes(searchLower) ||
-        student.registrationNumber.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    return students;
-  } catch (error) {
-    console.error('Error getting students:', error);
-    throw error;
-  }
+const API_URL = 'students';
+
+/**
+ * Get all students (Paginated)
+ * @param {Object} params - { page, limit, search, status, program, ... }
+ */
+export const getAllStudents = async (params = {}) => {
+  // Convert params to query string
+  const query = new URLSearchParams(params).toString();
+  const response = await api.get(`${API_URL}?${query}`);
+  return response;
 };
 
-// Get student by ID
+/**
+ * Public Billing Check
+ */
+export const checkPublicBilling = async (data) => {
+  // data = { registrationNumber, pin }
+  const response = await api.post('public/check-billing', data);
+  return response;
+};
+
+/**
+ * Get student by ID
+ */
 export const getStudentById = async (id) => {
-  try {
-    return await db.students.get(id);
-  } catch (error) {
-    console.error('Error getting student:', error);
-    throw error;
-  }
+  const response = await api.get(`${API_URL}/${id}`);
+  return response;
 };
 
-// Get student by registration number
-export const getStudentByRegistrationNumber = async (registrationNumber) => {
-  try {
-    return await db.students
-      .where('registrationNumber')
-      .equals(registrationNumber)
-      .first();
-  } catch (error) {
-    console.error('Error getting student by registration number:', error);
-    throw error;
-  }
+/**
+ * Create new student
+ * Backend will auto-generate registrationNumber and PIN
+ */
+export const createStudent = async (data) => {
+  const response = await api.post(API_URL, data);
+  return response;
 };
 
-// Create new student
-export const createStudent = async (studentData) => {
-  try {
-    // Generate registration number based on class
-    const registrationNumber = await generateRegistrationNumber(studentData.className);
-    
-    // Check if registration number already exists (safety check)
-    const existing = await getStudentByRegistrationNumber(registrationNumber);
-    if (existing) {
-      // Regenerate if somehow duplicate
-      const newRegNumber = await generateRegistrationNumber(studentData.className);
-      studentData.registrationNumber = newRegNumber;
-    } else {
-      studentData.registrationNumber = registrationNumber;
-    }
-    
-    const newStudent = {
-      ...studentData,
-      status: studentData.status || 'active',
-      enrollmentDate: studentData.enrollmentDate || new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    const id = await db.students.add(newStudent);
-    return { id, ...newStudent };
-  } catch (error) {
-    console.error('Error creating student:', error);
-    throw error;
-  }
+/**
+ * Bulk create students (faster than one-by-one)
+ * @param {Array} students - Array of student data objects
+ */
+export const bulkCreateStudents = async (students) => {
+  const response = await api.post(`${API_URL}/bulk`, { students });
+  return response;
 };
 
-// Update student
-export const updateStudent = async (id, studentData) => {
-  try {
-    const updated = {
-      ...studentData,
-      updatedAt: new Date(),
-    };
-    
-    await db.students.update(id, updated);
-    return await getStudentById(id);
-  } catch (error) {
-    console.error('Error updating student:', error);
-    throw error;
-  }
+export const resetStudentPin = async (id) => {
+  const response = await api.post(`${API_URL}/${id}/reset-pin`);
+  return response;
 };
 
-// Delete student
+// Alias for backward compatibility
+export const resetPin = resetStudentPin;
+
+/**
+ * Update student
+ */
+export const updateStudent = async (id, data) => {
+  const response = await api.put(`${API_URL}/${id}`, data);
+  return response;
+};
+
+/**
+ * Soft delete student
+ */
 export const deleteStudent = async (id) => {
-  try {
-    // Check if student has liabilities
-    const liabilities = await db.liabilities
-      .where('studentId')
-      .equals(id)
-      .count();
-    
-    if (liabilities > 0) {
-      throw new Error('Tidak dapat menghapus santri yang memiliki tanggungan');
-    }
-    
-    await db.students.delete(id);
-    return true;
-  } catch (error) {
-    console.error('Error deleting student:', error);
-    throw error;
-  }
+  const response = await api.delete(`${API_URL}/${id}`);
+  return response;
 };
 
-// Get student statistics
+/**
+ * Get student history/activity log
+ */
+export const getStudentHistory = async (id) => {
+  const response = await api.get(`${API_URL}/${id}/history`);
+  return response;
+};
+
+/**
+ * Get student statistics (Efficient Server-side)
+ */
 export const getStudentStats = async () => {
   try {
-    const allStudents = await db.students.toArray();
-    
-    return {
-      total: allStudents.length,
-      active: allStudents.filter(s => s.status === 'active').length,
-      inactive: allStudents.filter(s => s.status === 'inactive').length,
-      boarding: allStudents.filter(s => s.program === 'boarding').length,
-      nonBoarding: allStudents.filter(s => s.program === 'non-boarding').length,
-      male: allStudents.filter(s => s.gender === 'male').length,
-      female: allStudents.filter(s => s.gender === 'female').length,
-    };
+    const response = await api.get(`${API_URL}/stats`);
+    return response;
   } catch (error) {
-    console.error('Error getting student stats:', error);
-    throw error;
+    console.error('Failed to load stats:', error);
+    return { total: 0, active: 0, inactive: 0, withBalance: 0, programs: {} };
   }
 };
 
-// Generate next registration number with format: YYYY/CLASS/XXX
-export const generateRegistrationNumber = async (className, academicYear, program) => {
-  try {
-    // Format tahun ajaran
-    const yearFormat = academicYear || `${new Date().getFullYear() + 1}`;
-    
-    // Format kelas-program
-    const classCode = className ? className.replace(/\s+/g, '-').toUpperCase() : 'REG';
-    const programCode = program ? program.toUpperCase() : '';
-    const classProgram = programCode ? `${classCode}-${programCode}` : classCode;
-    
-    // Get all students
-    const students = await db.students.toArray();
-    
-    // Filter students dengan pattern yang sama
-    const samePattern = students.filter(s => 
-      s.registrationNumber && 
-      s.registrationNumber.startsWith(`${yearFormat}/${classProgram}/`)
-    );
-    
-    // Ambil semua nomor urut dan cari yang tertinggi
-    const sequences = samePattern.map(s => {
-      const parts = s.registrationNumber.split('/');
-      return parseInt(parts[2]) || 0;
-    });
-    
-    const maxSequence = sequences.length > 0 ? Math.max(...sequences) : 0;
-    const nextSequence = (maxSequence + 1).toString().padStart(4, '0');
-    
-    return `${yearFormat}/${classProgram}/${nextSequence}`;
-  } catch (error) {
-    console.error('Error generating registration number:', error);
-    throw error;
-  }
-};
-
-// Bulk import students
-export const bulkImportStudents = async (studentsData) => {
-  try {
-    const results = {
-      success: 0,
-      failed: 0,
-      errors: []
-    };
-    
-    for (const studentData of studentsData) {
-      try {
-        await createStudent(studentData);
-        results.success++;
-      } catch (error) {
-        results.failed++;
-        results.errors.push({
-          data: studentData,
-          error: error.message
-        });
-      }
-    }
-    
-    return results;
-  } catch (error) {
-    console.error('Error bulk importing students:', error);
-    throw error;
-  }
-};
-
-// Export students to array
+/**
+ * Export students to Excel
+ */
 export const exportStudents = async (filters = {}) => {
-  try {
-    const students = await getAllStudents(filters);
-    
-    return students.map(student => ({
-      'Nomor Registrasi': student.registrationNumber,
-      'Nama Lengkap': student.fullName,
-      'Kelas': student.className,
-      'Program': student.program === 'boarding' ? 'Boarding' : 'Non-Boarding',
-      'Jenis Kelamin': student.gender === 'male' ? 'Laki-laki' : 'Perempuan',
-      'Alamat': student.address,
-      'No. Telepon': student.phoneNumber,
-      'Wali': student.guardian?.name || '-',
-      'No. Telepon Wali': student.guardian?.phone || '-',
-      'Status': student.status === 'active' ? 'Aktif' : 'Tidak Aktif',
-      'Tanggal Masuk': new Date(student.enrollmentDate).toLocaleDateString('id-ID'),
-    }));
-  } catch (error) {
-    console.error('Error exporting students:', error);
-    throw error;
+  // Fetch all students with large limit to ensure complete export
+  const response = await getAllStudents({ limit: 100000, ...filters });
+  const students = response.data || response;
+
+  // Apply filters if provided
+  if (filters.status) {
+    students = students.filter(s => s.status === filters.status);
   }
+  if (filters.program) {
+    students = students.filter(s => s.program === filters.program);
+  }
+  if (filters.className) {
+    students = students.filter(s =>
+      s.className?.toLowerCase().includes(filters.className.toLowerCase())
+    );
+  }
+
+  // Format for export
+  return students.map(s => ({
+    'No. Registrasi': s.registrationNumber,
+    'Nama Lengkap': s.fullName,
+    'Kelas': s.className || '-',
+    'Program': s.program || '-',
+    'Status': s.status === 'active' ? 'Aktif' : 'Tidak Aktif',
+    'Nama Wali': s.guardianName || '-',
+    'Telp Wali': s.guardianPhone || '-',
+    'WhatsApp Wali': s.guardianWhatsapp || '-',
+    'Total Tagihan': s.totalLiabilities || 0,
+    'Sudah Dibayar': s.totalPaid || 0,
+    'Saldo': s.balance || 0,
+    'Beasiswa %': s.scholarshipPercent || 0,
+    'Alamat': s.address || '-',
+    'Tanggal Masuk': s.enrollmentDate ? new Date(s.enrollmentDate).toLocaleDateString('id-ID') : '-'
+  }));
+};
+
+/**
+ * Bulk update students
+ * @param {Array} updates - Array of {id OR registrationNumber, ...fields}
+ */
+export const bulkUpdateStudents = async (updates) => {
+  const results = {
+    success: [],
+    failed: []
+  };
+  // Pre-fetch all students to build a lookup map if we have registration numbers but no IDs
+  const needsLookup = updates.some(u => !u.id && u.registrationNumber);
+  let studentMap = {};
+
+  if (needsLookup) {
+    try {
+      // Fetch all students with large limit to ensure we find matches
+      // Only needing id and registrationNumber theoretically, but API returns full object
+      const response = await getAllStudents({ limit: 100000 });
+      const allData = response.data || response;
+
+      allData.forEach(s => {
+        studentMap[s.registrationNumber] = s.id;
+      });
+    } catch (err) {
+      console.error('Failed to load students for bulk update lookup', err);
+    }
+  }
+
+  for (const update of updates) {
+    try {
+      // Find by ID or registrationNumber
+      let studentId = update.id;
+
+      if (!studentId && update.registrationNumber) {
+        studentId = studentMap[update.registrationNumber];
+      }
+
+      if (!studentId) {
+        results.failed.push({
+          data: update,
+          error: 'Student not found'
+        });
+        continue;
+      }
+
+      // Remove id and registrationNumber from update payload
+      const { id, registrationNumber, ...updateData } = update;
+
+      await updateStudent(studentId, updateData);
+      results.success.push(studentId);
+    } catch (error) {
+      results.failed.push({
+        data: update,
+        error: error.message
+      });
+    }
+  }
+
+  return results;
+};
+
+/**
+ * Bulk promote students
+ */
+export const bulkPromoteStudents = async (data) => {
+  const response = await api.post(`${API_URL}/promote`, data);
+  return response;
 };

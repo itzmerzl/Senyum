@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { 
+import {
   Plus, Edit, Trash2, Download, Search, Tag, X,
-  Package, ShoppingCart, Apple, Coffee, Book, Shirt, 
+  Package, ShoppingCart, Apple, Coffee, Book, Shirt,
   Backpack, Pen, Sparkles, Candy, Pizza, Cookie,
   Beef, Croissant, IceCream, Milk, Utensils, Wine,
   ArrowUpDown, SlidersHorizontal
@@ -38,7 +38,7 @@ export default function Categories() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Enhanced Filters
   const [filters, setFilters] = useState({
     status: '',
@@ -219,26 +219,61 @@ export default function Categories() {
     <Layout>
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-sm text-gray-600 mb-1">Total Kategori</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 mt-2">
+          {/* Total Categories */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Kategori</p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.total}</h3>
+              </div>
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                <Tag className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Semua kategori dalam sistem
+            </p>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-sm text-gray-600 mb-1">Aktif</p>
-            <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+
+          {/* Active Categories */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Kategori Aktif</p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.active}</h3>
+              </div>
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                <Tag className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+            <p className="text-sm text-green-600">
+              Kategori yang sedang digunakan
+            </p>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-sm text-gray-600 mb-1">Tidak Aktif</p>
-            <p className="text-2xl font-bold text-gray-600">{stats.inactive}</p>
+
+          {/* Inactive Categories */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Kategori Nonaktif</p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.inactive}</h3>
+              </div>
+              <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                <Tag className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Kategori yang diarsipkan
+            </p>
           </div>
         </div>
       )}
 
       {/* Toolbar */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 px-6 py-4 mb-6">
         {/* Search & Actions */}
-        <div className="flex flex-col md:flex-row gap-3 mb-4">
+        <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1 relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="w-5 h-5 text-gray-400" />
@@ -247,27 +282,26 @@ export default function Categories() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-10 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               placeholder="Cari nama atau kode kategori..."
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center hover:bg-gray-100 rounded-r-lg transition-colors"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               >
                 <X className="w-4 h-4 text-gray-400" />
               </button>
             )}
           </div>
-          
-          <div className="flex gap-2">
+
+          <div className="flex gap-2 relative">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors relative ${
-                showFilters 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors relative whitespace-nowrap ${showFilters
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                }`}
             >
               <SlidersHorizontal className="w-4 h-4" />
               <span className="hidden sm:inline">Filter</span>
@@ -277,36 +311,36 @@ export default function Categories() {
                 </span>
               )}
             </button>
-            
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Tambah</span>
-            </button>
-            
+
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export</span>
+            </button>
+
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Tambah Kategori</span>
             </button>
           </div>
         </div>
 
         {/* Advanced Filters */}
         {showFilters && (
-          <div className="pt-4 border-t border-gray-200 fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+          <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700 animate-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Status Filter */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Status</label>
                 <select
                   value={filters.status}
                   onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 >
                   <option value="">Semua Status</option>
                   <option value="active">Aktif</option>
@@ -316,14 +350,13 @@ export default function Categories() {
 
               {/* Sort By */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  <ArrowUpDown className="w-3 h-3 inline mr-1" />
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Urutkan
                 </label>
                 <select
                   value={filters.sortBy}
                   onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 >
                   <option value="name-asc">Nama (A-Z)</option>
                   <option value="name-desc">Nama (Z-A)</option>
@@ -334,11 +367,11 @@ export default function Categories() {
 
               {/* Color Filter */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Warna</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Warna</label>
                 <select
                   value={filters.colorFilter}
                   onChange={(e) => setFilters(prev => ({ ...prev, colorFilter: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 >
                   <option value="">Semua Warna</option>
                   <option value="#3B82F6">🔵 Biru</option>
@@ -373,7 +406,7 @@ export default function Categories() {
             {activeFilterCount() > 0 && (
               <button
                 onClick={resetFilters}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
                 <X className="w-4 h-4" />
                 Reset Filter ({activeFilterCount()})
@@ -384,82 +417,96 @@ export default function Categories() {
       </div>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {loading ? (
-          <div className="col-span-full flex justify-center py-12">
-            <div className="spinner"></div>
+          <div className="col-span-full flex flex-col items-center justify-center py-20">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-900 dark:text-white font-medium">Memuat data kategori...</p>
           </div>
         ) : filteredCategories.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <Tag size={48} className="mx-auto mb-2 opacity-50 text-gray-400" />
-            <p className="text-gray-500 mb-2">Tidak ada kategori ditemukan</p>
-            {(searchQuery || activeFilterCount() > 0) && (
+          <div className="col-span-full text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 border-dashed">
+            <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Tag size={40} className="text-gray-300 dark:text-gray-500" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Tidak ada kategori ditemukan</h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
+              {searchQuery || activeFilterCount() > 0
+                ? 'Coba sesuaikan kata kunci pencarian atau filter Anda.'
+                : 'Belum ada kategori. Mulai dengan menambahkan kategori baru.'}
+            </p>
+            {(searchQuery || activeFilterCount() > 0) ? (
               <button
                 onClick={resetFilters}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
               >
                 Reset Filter
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2 mx-auto"
+              >
+                <Plus size={18} />
+                Tambah Kategori
               </button>
             )}
           </div>
         ) : (
           filteredCategories.map((category) => {
             const IconComponent = getIconComponent(category.icon);
-            
+
             return (
               <div
                 key={category.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-200 hover:-translate-y-1"
+                className="group bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden"
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-500">
+                  <IconComponent size={60} color={category.color || '#3B82F6'} />
+                </div>
+
+                <div className="flex items-start justify-between mb-4 relative z-10">
                   <div
-                    className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner"
                     style={{
-                      backgroundColor: (category.color || '#3B82F6') + '20',
+                      backgroundColor: (category.color || '#3B82F6') + '15',
                       color: category.color || '#3B82F6'
                     }}
                   >
-                    <IconComponent size={24} />
+                    <IconComponent size={28} strokeWidth={1.5} />
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    category.isActive
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {category.isActive ? 'Aktif' : 'Tidak Aktif'}
-                  </span>
+                  <div className={`w-2.5 h-2.5 rounded-full ${category.isActive ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-gray-300'}`} title={category.isActive ? 'Active' : 'Inactive'} />
                 </div>
 
-                <h3 className="font-semibold text-gray-900 mb-1">{category.name}</h3>
-                <p className="text-sm text-gray-500 mb-3">{category.code}</p>
+                <div className="relative z-10">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-1 group-hover:text-blue-600 transition-colors line-clamp-1">{category.name}</h3>
+                  <p className="text-xs font-mono text-gray-400 dark:text-gray-500 mb-3 bg-gray-100 dark:bg-gray-700/50 px-2 py-0.5 rounded w-fit">{category.code}</p>
 
-                {category.description && (
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {category.description}
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 line-clamp-2 h-10">
+                    {category.description || <span className="italic text-gray-300 dark:text-gray-600">Tidak ada deskripsi</span>}
                   </p>
-                )}
 
-                <div className="flex gap-2 pt-3 border-t border-gray-100">
-                  <button
-                    onClick={() => {
-                      setSelectedCategory(category);
-                      setShowEditModal(true);
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-yellow-50 hover:bg-yellow-100 text-yellow-600 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <Edit size={14} />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedCategory(category);
-                      setShowDeleteDialog(true);
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <Trash2 size={14} />
-                    Hapus
-                  </button>
+                  <div className="flex justify-end gap-1 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                    <button
+                      onClick={() => {
+                        setSelectedCategory(category);
+                        setShowEditModal(true);
+                      }}
+                      className="p-1.5 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded transition-colors"
+                      title="Edit"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedCategory(category);
+                        setShowDeleteDialog(true);
+                      }}
+                      className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      title="Hapus"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -470,7 +517,7 @@ export default function Categories() {
       {/* Pagination Info */}
       {filteredCategories.length > 0 && (
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Menampilkan <span className="font-semibold">{filteredCategories.length}</span> dari <span className="font-semibold">{categories.length}</span> kategori
           </p>
         </div>

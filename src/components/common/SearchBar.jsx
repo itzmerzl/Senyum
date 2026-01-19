@@ -1,29 +1,22 @@
 import { Search, X } from 'lucide-react';
 
-export default function SearchBar({ 
-  value, 
-  onChange, 
-  placeholder = "Cari...",
-  onClear 
-}) {
+export default function SearchBar({ value, onChange, onClear, placeholder = 'Search...' }) {
   return (
     <div className="relative">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Search size={20} className="text-gray-400" />
-      </div>
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        className="input-field pl-10 pr-10"
       />
       {value && (
         <button
           onClick={onClear}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center hover:bg-gray-100 rounded-r-lg transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
         >
-          <X size={18} className="text-gray-400" />
+          <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
         </button>
       )}
     </div>

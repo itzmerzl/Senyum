@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
+  Grid3x3,
+  List,
   Landmark,
   Building2,
   Barcode,
@@ -19,9 +21,14 @@ import {
   X,
   Scan,
   Package,
+  Clock,
+  Lock,
+  Unlock
 } from "lucide-react";
 import Layout from "../components/layout/Layout";
 import Modal from "../components/common/Modal";
+import CashDrawerModal from "../components/features/pos/CashDrawerModal";
+import api from "../utils/apiClient";
 import { getAllProducts } from "../services/productService";
 import { createTransaction } from "../services/transactionService";
 import { getAllStudents } from "../services/studentService";
@@ -31,6 +38,8 @@ import { formatCurrency, capitalizeFirst, formatRp } from "../utils/formatters";
 import midtransService from "../services/midtransService";
 import toast from "react-hot-toast";
 import { set } from "date-fns";
+import { create } from "zustand";
+import ConfirmDialog from "../components/common/ConfirmDialog";
 
 // Helper to get icon component
 const getIconComponent = (iconName) => {
@@ -55,6 +64,7 @@ export default function PointOfSales() {
   const [students, setStudents] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   // ========== CART & ORDER STATES ==========
   const [cart, setCart] = useState([]);
@@ -62,6 +72,9 @@ export default function PointOfSales() {
   const [total, setTotal] = useState(0);
   const [recentProducts, setRecentProducts] = useState([]);
   const [heldTransactions, setHeldTransactions] = useState([]);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [receiptToPrint, setReceiptToPrint] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   // ========== SEARCH & FILTER STATES ==========
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,9 +115,14 @@ export default function PointOfSales() {
   // ========== SETTINGS STATES ==========
   const [settings, setSettings] = useState({
     autoPrintReceipt: true,
-    printPreview: false,
+    printPreview: true,
     printOnPayment: true,
   });
+
+  // ========== SHIFT STATES ==========
+  const [shiftStatus, setShiftStatus] = useState({ isOpen: false });
+  const [showDrawerModal, setShowDrawerModal] = useState(false);
+  const [drawerModalType, setDrawerModalType] = useState('open'); // 'open' | 'close'
 
   // ========== REFS ==========
   const searchInputRef = useRef(null);
@@ -115,7 +133,7 @@ export default function PointOfSales() {
     const handleBarcodeInput = (e) => {
       // Only handle if in barcode mode
       if (searchMode !== 'barcode') return;
-      
+
       // Check whether focus is on an input/textarea to avoid conflicts
       const activeElement = document.activeElement === searchInputRef.current;
       if (!activeElement) return;
@@ -123,28 +141,28 @@ export default function PointOfSales() {
       // Prevent default for Enter key in barcode mode
       if (e.key === 'Enter' && searchMode === 'barcode') {
         e.preventDefault();
-        
+
         const scannedBarcode = barcodeBuffer.current.trim();
         if (scannedBarcode && searchInputRef.current) {
           // Update input value for visual feedback
           searchInputRef.current.value = scannedBarcode;
-          
+
           // Process the barcode
           processBarcode(scannedBarcode);
           barcodeBuffer.current = '';
         }
         return;
-      } 
-      
+      }
+
       // Handle character input (barcode scanner sends characters quickly)
       if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
         barcodeBuffer.current += e.key;
-        
+
         // Clear previous timeout
         if (barcodeTimeout.current) {
           clearTimeout(barcodeTimeout.current);
         }
-        
+
         // Update input value for visual feedback
         const currentBuffer = barcodeBuffer.current;
         searchInputRef.current.value = currentBuffer;
@@ -156,7 +174,7 @@ export default function PointOfSales() {
             if (scannedBarcode && searchInputRef.current) {
               // Update input value
               searchInputRef.current.value = scannedBarcode;
-              
+
               // Process the barcode
               processBarcode(scannedBarcode);
             }
@@ -165,24 +183,24 @@ export default function PointOfSales() {
         }, 200); // Scanner usually sends chars within 200ms
       }
     };
-    
+
     // Auto-focus to input when in barcode mode
     const focusInput = () => {
       if (searchMode === 'barcode' && searchInputRef.current) {
         searchInputRef.current.focus();
       }
     };
-    
+
     window.addEventListener('keydown', handleBarcodeInput);
     window.addEventListener('click', focusInput);
-    
+
     // Initial focus
     if (searchMode === 'barcode') {
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
     }
-    
+
     return () => {
       window.removeEventListener('keydown', handleBarcodeInput);
       window.removeEventListener('click', focusInput);
@@ -203,12 +221,36 @@ export default function PointOfSales() {
     setTotal(newSubtotal + tax);
   }, [cart]);
 
+  const checkShiftStatus = async () => {
+    try {
+      const response = await api.get('cash-drawer/status');
+      // console.log('Shift Status:', response); // For debug
+      setShiftStatus(response);
+
+      // Removed auto-popup logic here because it's handled by manual button now
+      // and we don't want to annoy user on every refresh?
+      // Actually, user wants "Buka Shift" popup if closed.
+      // But let's check if it conflicts.
+      // Keeping it but ensuring state is set first.
+
+      if (!response.isOpen) {
+        setDrawerModalType('open');
+        setShowDrawerModal(true);
+      }
+    } catch (error) {
+      console.error('Shift Check Error:', error);
+      const msg = error.response?.data?.error || error.message || 'Gagal memuat status shift';
+      toast.error(`Error: ${msg}`);
+    }
+  };
+
   // Load initial data
   useEffect(() => {
     loadCategories();
     loadProducts();
     loadStudents();
     loadPaymentMethods();
+    checkShiftStatus();
   }, []);
 
   // Filter students when search term changes
@@ -248,7 +290,7 @@ export default function PointOfSales() {
       // F3 - Clear Cart
       if (e.key === "F3") {
         e.preventDefault();
-        if (cart.length > 0 && confirm("Hapus semua?")) clearCart();
+        if (cart.length > 0) handleClearCartConfirm();
       }
     };
 
@@ -284,7 +326,8 @@ export default function PointOfSales() {
   const loadStudents = async () => {
     try {
       setLoadingStudents(true);
-      const data = await getAllStudents();
+      const response = await getAllStudents();
+      const data = response.data || response;
       setStudents(data.filter((s) => s.status === "active"));
       setFilteredStudents(data.filter((s) => s.status === "active"));
     } catch (error) {
@@ -305,7 +348,7 @@ export default function PointOfSales() {
       } else {
         // Fallback if database is empty
         setPaymentMethods(getDefaultPaymentMethods());
-        toast.warning("Tidak ada metode pembayaran aktif, menggunakan default");
+        toast.error("Tidak ada metode pembayaran aktif, menggunakan default");
       }
     } catch (error) {
       console.error("Error loading payment methods:", error);
@@ -390,7 +433,7 @@ export default function PointOfSales() {
 
   const handleUnifiedSearch = (e) => {
     e.preventDefault();
-    
+
     if (searchMode === 'barcode' && searchQuery.trim()) {
       // Process barcode from manual input
       processBarcode(searchQuery);
@@ -448,6 +491,19 @@ export default function PointOfSales() {
 
   const removeFromCart = (productId) => {
     setCart(cart.filter((item) => item.id !== productId));
+  };
+
+  const handleClearCartConfirm = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Hapus Keranjang',
+      message: 'Yakin ingin menghapus semua item di keranjang? Tindakan ini tidak dapat dibatalkan.',
+      type: 'danger',
+      onConfirm: () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        clearCart();
+      }
+    });
   };
 
   const clearCart = () => {
@@ -510,13 +566,13 @@ export default function PointOfSales() {
   // Process barcode input
   const processBarcode = (barcode) => {
     if (!barcode.trim()) return;
-    
+
     const product = products.find(p => p.barcode === barcode.trim());
-    
+
     if (product) {
       addToCart(product);
       toast.success(`${product.name} ditambahkan ke keranjang`);
-      
+
       // Reset
       setBarcodeInput('');
       barcodeBuffer.current = '';
@@ -530,7 +586,7 @@ export default function PointOfSales() {
       }, 50);
     } else {
       toast.error(`Produk dengan barcode "${barcode}" tidak ditemukan`);
-      
+
       setBarcodeInput();
       barcodeBuffer.current = '';
 
@@ -539,7 +595,7 @@ export default function PointOfSales() {
         searchInputRef.current.focus();
       }
     }
-    
+
     // Reset buffer
     barcodeBuffer.current = '';
   };
@@ -609,6 +665,7 @@ export default function PointOfSales() {
         total,
         paymentMethod: method.code,
         paymentMethodName: method.name,
+        bankAccount: method.bankAccount,
         paidAmount: method.type === "cash" ? parseFloat(paidAmount) : total,
         changeAmount:
           method.type === "cash" ? parseFloat(paidAmount) - total : 0,
@@ -618,16 +675,54 @@ export default function PointOfSales() {
 
       const result = await createTransaction(transactionData);
 
+      // Di processPayment setelah transaksi pending berhasil
       if (transactionStatus === "pending") {
-        toast.success("Transaksi dibuat! Menunggu konfirmasi pembayaran", {
-          duration: 4000,
-        });
+        toast.custom(
+          (t) => (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 max-w-md border-2 border-yellow-300">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <Clock className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-gray-900 dark:text-white">Menunggu Konfirmasi Transfer</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Invoice: <span className="font-bold text-blue-600">{result.invoiceNumber}</span>
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Total: <span className="font-bold">{formatCurrency(result.total)}</span>
+                  </p>
 
-        // Show pending transaction info
-        toast.success(
-          `No. Invoice: ${result.invoiceNumber}. Silakan lakukan transfer.`,
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => {
+                        // Print invoice pending
+                        handlePrintPendingInvoice(result);
+                        toast.dismiss(t.id);
+                      }}
+                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Print Invoice
+                    </button>
+                    <button
+                      onClick={() => {
+                        toast.dismiss(t.id);
+                        // Buka halaman transaksi atau modal konfirmasi
+                        window.location.href = '/transactions';
+                      }}
+                      className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium"
+                    >
+                      Lihat Detail
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ),
           {
-            duration: 6000,
+            duration: 10000, // 10 detik
+            position: "top-center",
           }
         );
       } else if (transactionStatus === "completed") {
@@ -637,8 +732,7 @@ export default function PointOfSales() {
         if (settings.autoPrintReceipt) {
           // Auto print directly
           if (settings.printPreview) {
-            // Implement openReceiptPreview function
-            // openReceiptPreview(result); // Show preview first
+            openReceiptPreview(result); // Show preview first
           } else {
             handlePrintReceipt(result); // Print directly without preview
           }
@@ -646,16 +740,16 @@ export default function PointOfSales() {
           // Manual: show toast with options
           toast.custom(
             (t) => (
-              <div className="bg-white rounded-lg shadow-lg p-4 max-w-md">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 max-w-md">
                 <div className="flex items-start gap-3">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Printer className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-gray-900">
+                    <p className="font-bold text-gray-900 dark:text-white">
                       Pembayaran Berhasil!
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       Transaksi {result.invoiceNumber} berhasil diproses
                     </p>
                     <div className="flex gap-2 mt-3">
@@ -711,20 +805,17 @@ export default function PointOfSales() {
   const toggleSearchMode = () => {
     const newMode = searchMode === 'search' ? 'barcode' : 'search';
     setSearchMode(newMode);
-    
+
     // Clear input
     setSearchQuery('');
     setBarcodeInput('');
-    
+
     // Focus and select all for barcode mode
     setTimeout(() => {
       if (searchInputRef.current) {
         searchInputRef.current.focus();
         if (newMode === 'barcode') {
           searchInputRef.current.select();
-          toast.success('Mode Barcode aktif - siap scan!', {
-            duration: 2000
-          });
         }
       }
     }, 100);
@@ -732,16 +823,512 @@ export default function PointOfSales() {
 
   // ========== PRINT FUNCTIONS ==========
 
-  const handlePrintReceipt = (transaction) => {
-    // Your existing print receipt function
-    // Keep the existing implementation as it was
-    const printWindow = window.open("", "_blank", "width=302,height=500");
-    // ... rest of your print code
+  const openReceiptPreview = (transaction) => {
+    setReceiptToPrint(transaction);
+    setShowReceiptPreview(true);
   };
 
-  const printPendingInvoice = (transaction) => {
-    // Your existing print pending invoice function
-    // Keep the existing implementation
+  const handlePrintReceipt = (transaction) => {
+    const printWindow = window.open('', '_blank', 'width=302,height=500');
+
+    // Tambah fungsi ini bareng padRight & padLeft
+    const padCenter = (text, width) => {
+      const str = String(text);
+      const totalPadding = Math.max(0, width - str.length);
+      const leftPadding = Math.floor(totalPadding / 2);
+      const rightPadding = totalPadding - leftPadding;
+      return ' '.repeat(leftPadding) + str + ' '.repeat(rightPadding);
+    };
+
+    // FUNGSI PADDING YANG BENAR untuk printer thermal
+    const padRight = (text, width) => {
+      const str = String(text);
+      return str + ' '.repeat(Math.max(0, width - str.length));
+    };
+
+    const padLeft = (text, width) => {
+      const str = String(text);
+      return ' '.repeat(Math.max(0, width - str.length)) + str;
+    };
+
+    // Fungsi buat baris dengan alignment yang benar
+    const createRow = (label, value, isBoldValue = false, labelWidth = 15) => {
+      const TOTAL_WIDTH = 32; // Lebar thermal 58mm = sekitar 32 karakter
+      const valueStyle = isBoldValue ? 'font-weight: bold;' : '';
+
+      // Potong label kalau kepanjangan
+      const trimmedLabel = label.length > labelWidth ? label.substring(0, labelWidth) : label;
+      const paddedLabel = padRight(trimmedLabel, labelWidth);
+
+      // Value di kanan
+      const valueWidth = TOTAL_WIDTH - labelWidth;
+      const paddedValue = padLeft(value || '', valueWidth);
+
+      return `<div style="font-size: 9pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 0;">${paddedLabel}${paddedValue}</div>`;
+    };
+
+    // Items formatting
+    const itemsHtml = transaction.items.map(item => {
+      const TOTAL_WIDTH = 32;
+
+      // Nama produk (bold, baris sendiri)
+      const itemNameRow = `<div style="font-size: 9pt; font-weight: bold; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 1px 0 0 0; padding: 0;">${item.productName}</div>`;
+
+      // Detail: "1 x Rp16.000" (kiri) dan "Rp16.000" (kanan)
+      const leftText = `${item.quantity} x Rp${formatRp(item.price)}`;
+      const rightText = `Rp${formatRp(item.subtotal)}`;
+
+      // Hitung padding
+      const paddingNeeded = TOTAL_WIDTH - leftText.length - rightText.length;
+      const padding = ' '.repeat(Math.max(0, paddingNeeded));
+
+      const itemDetailRow = `<div style="font-size: 8pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0 0 2px 0; padding: 0;">${leftText}${padding}<span style="font-weight: bold;">${rightText}</span></div>`;
+
+      return itemNameRow + itemDetailRow;
+    }).join('');
+
+    const formattedDate = new Date(transaction.transactionDate).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Struk - ${transaction.invoiceNumber}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            width: 58mm;
+            margin: 0 auto;
+            padding: 2mm 1mm;
+            background: white;
+            color: black;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 9pt;
+            line-height: 1.3;
+          }
+          
+          .receipt {
+            width: 100%;
+          }
+          
+          .store-header {
+            text-align: center;
+            margin-bottom: 2mm;
+          }
+          
+          .store-name {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 0.5mm;
+          }
+          
+          .store-address {
+            font-size: 8pt;
+            line-height: 1.2;
+          }
+          
+          .divider {
+            text-align: center;
+            margin: 1mm 0;
+            font-size: 8pt;
+            letter-spacing: -0.5px;
+          }
+          
+          .content-area {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre;
+          }
+          
+          .footer {
+            text-align: center;
+            margin-top: 2mm;
+            margin-bottom: 5mm;
+            font-size: 8pt;
+          }
+
+          .bottom-spacer {
+            height: 10mm; /* Spacing buat trigger printer cut */
+            font-size: 1pt;
+            line-height: 1;
+          }
+          
+          .thank-you {
+            font-weight: bold;
+          }
+          
+          @media print {
+            @page {
+              size: 58mm auto;
+              margin: 0;
+            }
+            
+            body {
+              width: 58mm;
+              padding: 2mm 1mm 5mm 1mm; /* Tambah padding bawah */
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+        <div class="bottom-spacer">
+            &nbsp;<br>
+          </div>
+          <div class="content-area">
+${padCenter('KOPERASI SENYUMMU', 32)}
+${padCenter('Jln. Pemandian No. 88', 32)}
+${padCenter('Telp: 085183079329', 32)}
+</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="content-area">
+${createRow('No Invoice', transaction.invoiceNumber, true)}
+${createRow('Tanggal', formattedDate)}
+${createRow('Kasir', transaction.cashierName || 'Admin')}
+${createRow('Pelanggan', transaction.customerName || 'Umum')}
+</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="content-area">
+${itemsHtml}
+</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="content-area">
+${createRow('Sub Total', `Rp${formatRp(transaction.subtotal)}`)}
+${transaction.tax > 0 ? createRow('Pajak', `Rp${formatRp(transaction.tax)}`) : ''}
+${transaction.discount > 0 ? createRow('Diskon', `-Rp${formatRp(transaction.discount)}`) : ''}
+${createRow('Total', `Rp${formatRp(transaction.total)}`)}
+</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="content-area">
+${createRow('Metode Bayar', capitalizeFirst(transaction.paymentMethodName || transaction.paymentMethod), true)}
+${createRow('Dibayar', `Rp${formatRp(transaction.paidAmount)}`)}
+${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.changeAmount)}`) : ''}
+</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="footer">
+            <div class="thank-you">Terima kasih atas kunjungan Anda</div>  
+          </div>
+
+          <div class="bottom-spacer">
+            &nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>
+          </div>
+
+        </div>
+        
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 250);
+          };
+          
+          window.onafterprint = function() {
+            setTimeout(function() {
+              window.close();
+            }, 500);
+          };
+
+          setTimeout(function() {
+            if (!window.closed) {
+              window.close();
+            }
+          }, 5000);
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const handlePrintPendingInvoice = (transaction) => {
+    const printWindow = window.open('', '_blank', 'width=302,height=500');
+
+    if (!printWindow) {
+      toast.error('Pop-up diblokir! Izinkan pop-up untuk print.');
+      return;
+    }
+
+    // Helper functions
+    const padCenter = (text, width) => {
+      const str = String(text);
+      const totalPadding = Math.max(0, width - str.length);
+      const leftPadding = Math.floor(totalPadding / 2);
+      const rightPadding = totalPadding - leftPadding;
+      return ' '.repeat(leftPadding) + str + ' '.repeat(rightPadding);
+    };
+
+    const padRight = (text, width) => {
+      const str = String(text);
+      return str + ' '.repeat(Math.max(0, width - str.length));
+    };
+
+    const padLeft = (text, width) => {
+      const str = String(text);
+      return ' '.repeat(Math.max(0, width - str.length)) + str;
+    };
+
+    const createRow = (label, value, isBoldValue = false, labelWidth = 15) => {
+      const TOTAL_WIDTH = 32;
+      const valueStyle = isBoldValue ? 'font-weight: bold;' : '';
+
+      const trimmedLabel = label.length > labelWidth ? label.substring(0, labelWidth) : label;
+      const paddedLabel = padRight(trimmedLabel, labelWidth);
+
+      const valueWidth = TOTAL_WIDTH - labelWidth;
+      const paddedValue = padLeft(value || '', valueWidth);
+
+      return `<div style="font-size: 9pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 0; ${valueStyle}">${paddedLabel}${paddedValue}</div>`;
+    };
+
+    // Content builder functions
+    const buildHeader = () => {
+      const lines = [];
+      lines.push(padCenter('KOPERASI SENYUMMU', 32));
+      lines.push(padCenter('Jln. Pemandian No. 88', 32));
+      lines.push(padCenter('Telp: 085183079329', 32));
+      return lines.join('\n');
+    };
+
+    const buildTransactionInfo = (transaction, formattedDate) => {
+      const lines = [];
+      lines.push(padCenter('INVOICE PENDING', 32));
+      lines.push(createRow('No Invoice', transaction.invoiceNumber, true));
+      lines.push(createRow('Tanggal', formattedDate));
+      lines.push(createRow('Kasir', transaction.cashierName || 'Admin'));
+      lines.push(createRow('Pelanggan', transaction.customerName || 'Umum'));
+      return lines.join('\n');
+    };
+
+    const buildTotals = (transaction) => {
+      const lines = [];
+      lines.push(createRow('Sub Total', `Rp${formatRp(transaction.subtotal)}`));
+      if (transaction.tax > 0) {
+        lines.push(createRow('Pajak', `Rp${formatRp(transaction.tax)}`));
+      }
+      if (transaction.discount > 0) {
+        lines.push(createRow('Diskon', `-Rp${formatRp(transaction.discount)}`));
+      }
+      lines.push(createRow('Total Tagihan', `Rp${formatRp(transaction.total)}`, true));
+      return lines.join('\n');
+    };
+
+    const buildPaymentInstructions = (transaction) => {
+      if (transaction.paymentMethod === 'bank') {
+        const lines = [];
+        lines.push(`Transfer ke ${transaction.paymentMethodName || transaction.paymentMethod}`);
+        lines.push(`No. Rek: ${transaction.bankAccount || '-'}`);
+        lines.push(`a.n. ${transaction.accountName || 'Koperasi SenyumMu'}`);
+        lines.push(`Sejumlah: Rp${formatRp(transaction.total)}`);
+        return lines.join('\n'); // Gunakan \n untuk baris baru, bukan spasi
+      }
+      return '';
+    };
+
+    const buildItemsHtml = (transaction) => {
+      return transaction.items.map(item => {
+        const TOTAL_WIDTH = 32;
+
+        const itemNameRow = `<div style="font-size: 9pt; font-weight: bold; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 1px 0 0 0; padding: 0;">${item.productName}</div>`;
+
+        const leftText = `${item.quantity} x Rp${formatRp(item.price)}`;
+        const rightText = `Rp${formatRp(item.subtotal)}`;
+
+        const paddingNeeded = TOTAL_WIDTH - leftText.length - rightText.length;
+        const padding = ' '.repeat(Math.max(0, paddingNeeded));
+
+        const itemDetailRow = `<div style="font-size: 8pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0 0 2px 0; padding: 0;">${leftText}${padding}<span style="font-weight: bold;">${rightText}</span></div>`;
+
+        return itemNameRow + itemDetailRow;
+      }).join('');
+    };
+
+    const formattedDate = new Date(transaction.transactionDate).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const paymentMethodName = transaction.paymentMethodName || capitalizeFirst(transaction.paymentMethod);
+    const itemsHtml = buildItemsHtml(transaction);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Invoice Pending - ${transaction.invoiceNumber}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            width: 58mm;
+            margin: 0 auto;
+            padding: 2mm 1mm;
+            background: white;
+            color: black;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 9pt;
+            line-height: 1.3;
+          }
+          
+          .invoice {
+            width: 100%;
+          }
+          
+          .divider {
+            text-align: center;
+            margin: 1mm 0;
+            font-size: 8pt;
+            letter-spacing: -0.5px;
+          }
+          
+          .content-area {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre;
+          }
+          
+          .footer {
+            text-align: center;
+            margin-top: 2mm;
+            margin-bottom: 5mm;
+            font-size: 8pt;
+          }
+
+          .bottom-spacer {
+            height: 10mm;
+            font-size: 1pt;
+            line-height: 1;
+          }
+          
+          .status-pending {
+            background: #fef3c7;
+            border: 2px dashed #f59e0b;
+            padding: 2mm;
+            margin: 2mm 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 10pt;
+            color: #92400e;
+          }
+
+          .payment-instructions {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            padding: 2mm;
+            margin: 2mm 0;
+            font-size: 8pt;
+          }
+
+          .payment-instructions-title {
+            font-weight: bold;
+            font-size: 9pt;
+            margin-bottom: 1mm;
+            color: #1e40af;
+          }
+          
+          @media print {
+            @page {
+              size: 58mm auto;
+              margin: 0;
+            }
+            
+            body {
+              width: 58mm;
+              padding: 2mm 1mm 5mm 1mm;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="invoice">
+          <div class="bottom-spacer">&nbsp;</div>
+          
+          <div class="content-area">${buildHeader()}</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="content-area">${buildTransactionInfo(transaction, formattedDate)}</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="content-area">${itemsHtml}</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="content-area">${buildTotals(transaction)}</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="content-area">Cara Pembayaran :</div>
+          
+          <div class="payment-instructions">${buildPaymentInstructions(transaction)}</div>
+          
+          <div class="divider">--------------------------------</div>
+          
+          <div class="footer">
+            Invoice ini belum lunas<br>
+            Simpan invoice ini sebagai bukti pembayaran.
+          </div>
+
+          <div class="bottom-spacer">
+            &nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>
+          </div>
+        </div>
+        
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 250);
+          };
+          
+          window.onafterprint = function() {
+            setTimeout(function() {
+              window.close();
+            }, 500);
+          };
+
+          setTimeout(function() {
+            if (!window.closed) {
+              window.close();
+            }
+          }, 5000);
+        </script>
+      </body>
+      </html>
+        `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   // ========== MIDTRANS PAYMENT FUNCTIONS ==========
@@ -894,8 +1481,8 @@ export default function PointOfSales() {
       
       No Invoice: ${transaction.invoiceNumber || "N/A"}
       Tanggal: ${new Date(
-        transaction.transactionDate || new Date()
-      ).toLocaleString("id-ID")}
+      transaction.transactionDate || new Date()
+    ).toLocaleString("id-ID")}
       Kasir: ${transaction.cashierName || "Admin"}
       
       --------------------------------
@@ -930,30 +1517,62 @@ export default function PointOfSales() {
 
   return (
     <Layout>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
+      <div className="flex justify-between items-center mb-4 px-1">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Point of Sales</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {shiftStatus.isOpen
+              ? `Shift Terbuka (Operator: ${shiftStatus.drawer?.user?.fullName || shiftStatus.drawer?.userName || 'Anda'})`
+              : 'Shift Tertutup'}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          {shiftStatus.isOpen ? (
+            <button
+              onClick={() => {
+                setDrawerModalType('close');
+                setShowDrawerModal(true);
+              }}
+              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm font-bold flex items-center gap-2"
+            >
+              <Lock className="w-4 h-4" />
+              Tutup Shift (End)
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setDrawerModalType('open');
+                setShowDrawerModal(true);
+              }}
+              className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm font-bold flex items-center gap-2"
+            >
+              <Unlock className="w-4 h-4" />
+              Buka Shift
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-1">
         {/* Left Side - Products */}
         <div className="lg:col-span-2 flex flex-col space-y-4">
           {/* Combined Search & Barcode Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             {/* Simplified Header with Toggle Button */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <h3 className="font-medium text-gray-700">
-                  {searchMode === 'search' ? '🔍 Cari Produk' : '📷 Scan Barcode'}
+                  {searchMode === 'search' ? 'Cari Produk' : 'Scan Barcode'}
                 </h3>
-                <span className={`text-xs px-2 py-1 rounded-full ${searchMode === 'search' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'}`}>
-                  {searchMode === 'search' ? 'Mode : Pencarian' : 'Mode : Scanning'}
-                </span>
               </div>
-              
+
               {/* Toggle Button */}
               <button
                 onClick={toggleSearchMode}
-                className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${
-                  searchMode === 'search' 
-                    ? 'bg-blue-100 hover:bg-blue-200 text-blue-600'
-                    : 'bg-green-100 hover:bg-green-200 text-green-600'
-                }`}
+                className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${searchMode === 'search'
+                  ? 'bg-blue-100 hover:bg-blue-200 text-blue-600'
+                  : 'bg-green-100 hover:bg-green-200 text-green-600'
+                  }`}
                 title={searchMode === 'search' ? 'Switch ke Mode Barcode' : 'Switch ke Mode Pencarian'}
               >
                 {searchMode === 'search' ? (
@@ -980,7 +1599,7 @@ export default function PointOfSales() {
                     <Barcode className="w-5 h-5 text-gray-400" />
                   )}
                 </div>
-                
+
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -993,20 +1612,19 @@ export default function PointOfSales() {
                     }
                   }}
                   placeholder={
-                    searchMode === 'search' 
-                      ? 'Cari nama produk, SKU, atau barcode...' 
+                    searchMode === 'search'
+                      ? 'Cari nama produk, SKU, atau barcode...'
                       : 'Scan barcode atau ketik manual...'
                   }
-                  className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:outline-none ${
-                    searchMode === 'search'
-                      ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                      : 'border-green-300 focus:ring-green-500 focus:border-green-500'
-                  }`}
+                  className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:outline-none ${searchMode === 'search'
+                    ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                    : 'border-green-300 focus:ring-green-500 focus:border-green-500'
+                    }`}
                   autoFocus={searchMode === 'barcode'}
                   autoComplete="off"
                   spellCheck="false"
                 />
-                
+
                 {/* Clear button */}
                 {(searchMode === 'search' ? searchQuery : barcodeInput) && (
                   <button
@@ -1019,32 +1637,31 @@ export default function PointOfSales() {
                       }
                       searchInputRef.current?.focus();
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400"
                   >
                     ✕
                   </button>
                 )}
-                
+
               </div>
-              
+
               {/* Submit button */}
               <button
                 type="submit"
-                className={`px-4 py-2.5 rounded-lg font-medium whitespace-nowrap transition-colors ${
-                  searchMode === 'search'
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
+                className={`px-4 py-2.5 rounded-lg font-medium whitespace-nowrap transition-colors ${searchMode === 'search'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+                  }`}
               >
                 {searchMode === 'search' ? 'Cari' : 'Tambah'}
               </button>
             </form>
-            
+
             {/* Tips for barcode scanner 
             {searchMode === 'barcode' && (
               <div className="mt-6 pt-3 border-t border-green-100">
                 <p className="text-xs font-medium text-green-600 mb-1">💡 Tips Scanner Barcode:</p>
-                <ul className="text-xs text-gray-600 space-y-1">
+                <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                   <li>• Fokuskan cursor ke input field di atas</li>
                   <li>• Scan barcode produk menggunakan thermal scanner</li>
                   <li>• Produk akan otomatis ditambahkan ke keranjang</li>
@@ -1053,18 +1670,17 @@ export default function PointOfSales() {
               </div>
             )}
             */}
-            
+
             {/* Category Filters */}
-            <div className="mt-4 pt-3 border-t border-gray-200">
+            <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
               <p className="text-sm font-medium text-gray-700 mb-2">Filter Kategori:</p>
               <div className="flex gap-2 overflow-x-auto pb-1">
                 <button
                   onClick={() => setSelectedCategory('all')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
-                    selectedCategory === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${selectedCategory === 'all'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
                 >
                   Semua
                 </button>
@@ -1072,11 +1688,10 @@ export default function PointOfSales() {
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(String(cat.id))}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
-                      selectedCategory === String(cat.id)
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${selectedCategory === String(cat.id)
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
                   >
                     {cat.name}
                   </button>
@@ -1086,20 +1701,51 @@ export default function PointOfSales() {
           </div>
 
           {/* Products Grid */}
-          <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-4 overflow-hidden">
+          <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 overflow-hidden">
+            {/* Header with View Toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-gray-700">
+                Produk ({filteredProducts.length})
+              </h3>
+
+              {/* View Mode Toggle */}
+              <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded transition-colors ${viewMode === 'grid'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
+                    }`}
+                  title="Grid View"
+                >
+                  <Grid3x3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded transition-colors ${viewMode === 'list'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
+                    }`}
+                  title="List View"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
             <div className="h-full overflow-y-auto">
               {filteredProducts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                <div className="flex flex-col items-center justify-center min-h-[400px] text-gray-500 dark:text-gray-400">
                   <Package className="w-16 h-16 mb-2 opacity-50" />
                   <p>Tidak ada produk</p>
                 </div>
-              ) : (
+              ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                   {filteredProducts.map((product) => (
                     <button
                       key={product.id}
                       onClick={() => addToCart(product)}
-                      className="bg-white border-2 border-gray-200 hover:border-blue-500 rounded-lg p-3 text-left transition-all hover:shadow-md group"
+                      className="bg-white border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 rounded-lg p-3 text-left transition-all hover:shadow-md group"
                     >
                       {product.image ? (
                         <img
@@ -1108,19 +1754,56 @@ export default function PointOfSales() {
                           className="w-full h-24 object-cover rounded-lg mb-2"
                         />
                       ) : (
-                        <div className="w-full h-24 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                        <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center">
                           <Package className="w-8 h-8 text-gray-400" />
                         </div>
                       )}
-                      <h3 className="font-medium text-sm text-gray-900 line-clamp-2 mb-1 group-hover:text-blue-600">
+                      <h3 className="font-medium text-sm text-gray-900 dark:text-white line-clamp-2 mb-1 group-hover:text-blue-600">
                         {product.name}
                       </h3>
-                      <p className="text-xs text-gray-500 mb-2">
-                        Stok: {product.stock} {product.unit}
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Stok: {product.stock} {typeof product.unit === 'object' ? product.unit?.name : product.unit}
                       </p>
                       <p className="text-blue-600 font-bold">
                         {formatCurrency(product.sellingPrice)}
                       </p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredProducts.map((product) => (
+                    <button
+                      key={product.id}
+                      onClick={() => addToCart(product)}
+                      className="w-full bg-white border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 rounded-lg p-2.5 transition-all hover:shadow-md group flex items-center gap-3"
+                    >
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Package className="w-5 h-5 text-gray-400" />
+                        </div>
+                      )}
+
+                      <div className="flex-1 text-left min-w-0">
+                        <h3 className="font-medium text-sm text-gray-900 dark:text-white group-hover:text-blue-600 truncate">
+                          {product.name}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Stok: {product.stock} {typeof product.unit === 'object' ? product.unit?.name : product.unit}
+                        </p>
+                      </div>
+
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-blue-600 font-bold">
+                          {formatCurrency(product.sellingPrice)}
+                        </p>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -1132,29 +1815,27 @@ export default function PointOfSales() {
         {/* Right Side - Cart */}
         <div className="flex flex-col space-y-4">
           {/* Customer Selection */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex gap-2 mb-3">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div className="flex gap-2 mb-3 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
               <button
                 onClick={() => {
                   setCustomerType("general");
                   setSelectedStudent(null);
                   setStudentSearch("");
                 }}
-                className={`flex-1 py-2 px-3 rounded-lg font-medium transition-colors ${
-                  customerType === "general"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className={`flex-1 py-2 px-3 rounded-lg font-medium transition-colors ${customerType === "general"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
               >
                 Umum
               </button>
               <button
                 onClick={() => setCustomerType("student")}
-                className={`flex-1 py-2 px-3 rounded-lg font-medium transition-colors ${
-                  customerType === "student"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className={`flex-1 py-2 px-3 rounded-lg font-medium transition-colors ${customerType === "student"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
               >
                 Santri
               </button>
@@ -1186,16 +1867,16 @@ export default function PointOfSales() {
                 </div>
 
                 {/* Student List */}
-                <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                <div className="max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
                   {loadingStudents ? (
                     <div className="p-4 text-center">
                       <div className="spinner mx-auto"></div>
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                         Memuat daftar santri...
                       </p>
                     </div>
                   ) : filteredStudents.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500 text-sm">
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
                       {studentSearch
                         ? "Santri tidak ditemukan"
                         : "Tidak ada santri aktif"}
@@ -1209,20 +1890,19 @@ export default function PointOfSales() {
                             setSelectedStudent(student);
                             setStudentSearch(student.fullName);
                           }}
-                          className={`w-full text-left p-3 hover:bg-blue-50 transition-colors flex items-center gap-3 ${
-                            selectedStudent?.id === student.id
-                              ? "bg-blue-50 border-l-4 border-blue-500"
-                              : ""
-                          }`}
+                          className={`w-full text-left p-3 hover:bg-blue-50 transition-colors flex items-center gap-3 ${selectedStudent?.id === student.id
+                            ? "bg-blue-50 border-l-4 border-blue-500"
+                            : ""
+                            }`}
                         >
                           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                             <User className="w-4 h-4 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-gray-900 truncate">
+                            <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
                               {student.fullName}
                             </p>
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {student.registrationNumber} • Kelas{" "}
                               {student.className || "-"}
                             </p>
@@ -1254,11 +1934,11 @@ export default function PointOfSales() {
           </div>
 
           {/* Cart Items */}
-          <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-gray-700" />
-                <h2 className="font-bold text-gray-900">
+                <h2 className="font-bold text-gray-900 dark:text-white">
                   Keranjang ({cart.length})
                 </h2>
               </div>
@@ -1274,16 +1954,16 @@ export default function PointOfSales() {
 
             <div className="flex-1 overflow-y-auto p-4">
               {cart.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
                   <ShoppingCart className="w-16 h-16 mb-2 opacity-50" />
                   <p>Keranjang kosong</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {cart.map((item) => (
-                    <div key={item.id} className="bg-gray-50 rounded-lg p-3">
+                    <div key={item.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-medium text-sm text-gray-900 flex-1 pr-2">
+                        <h3 className="font-medium text-sm text-gray-900 dark:text-white flex-1 pr-2">
                           {item.name}
                         </h3>
                         <button
@@ -1318,7 +1998,7 @@ export default function PointOfSales() {
                         </div>
 
                         <div className="text-right">
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {formatCurrency(item.sellingPrice)} x{" "}
                             {item.quantity}
                           </p>
@@ -1334,9 +2014,9 @@ export default function PointOfSales() {
             </div>
 
             {/* Totals */}
-            <div className="border-t border-gray-200 p-4 space-y-2">
+            <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Sub Total</span>
+                <span className="text-gray-600 dark:text-gray-400">Sub Total</span>
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
@@ -1359,7 +2039,157 @@ export default function PointOfSales() {
             </div>
           </div>
         </div>
+
       </div>
+
+      {/* Modal Preview Struk */}
+      <Modal
+        isOpen={showReceiptPreview}
+        onClose={() => setShowReceiptPreview(false)}
+        title="Preview Struk"
+        size="sm"
+      >
+        {receiptToPrint && (() => {
+          const formattedDate = new Date(receiptToPrint.transactionDate).toLocaleString('id-ID', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          return (
+            <div className="space-y-4">
+              {/* Preview Struk */}
+              <div className="bg-white border-2 border-gray-800 rounded-none p-4 font-mono max-h-[525px] overflow-y-auto">
+                {/* Header */}
+                <div className="text-center mb-3">
+                  <h2 className="text-lg font-bold uppercase tracking-wider mb-1">KOPERASI SENYUMMU</h2>
+                  <p className="text-xs">Jln. Pemandian No. 88</p>
+                  <p className="text-xs">Telp: 085183079329</p>
+                </div>
+
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
+
+                {/* Transaction Info */}
+                <div className="text-xs space-y-1 mb-3">
+                  <div className="flex justify-between">
+                    <span>No Invoice</span>
+                    <span className="font-bold">{receiptToPrint.invoiceNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tanggal</span>
+                    <span>{formattedDate}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Kasir</span>
+                    <span>{receiptToPrint.cashierName || 'Admin'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Pelanggan</span>
+                    <span>{receiptToPrint.customerName || 'Umum'}</span>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
+
+                {/* Items */}
+                <div className="mb-3">
+                  {receiptToPrint.items?.map((item, idx) => (
+                    <div key={idx} className="mb-2">
+                      <div className="font-bold text-sm">{item.productName}</div>
+                      <div className="flex justify-between text-xs">
+                        <span>{item.quantity} x Rp{formatRp(item.price)}</span>
+                        <span className="font-bold">Rp{formatRp(item.subtotal)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
+
+                {/* Summary */}
+                <div className="text-xs space-y-1 mb-2">
+                  <div className="flex justify-between">
+                    <span>Sub Total</span>
+                    <span>Rp{formatRp(receiptToPrint.subtotal)}</span>
+                  </div>
+                  {receiptToPrint.tax > 0 && (
+                    <div className="flex justify-between">
+                      <span>Pajak</span>
+                      <span>Rp{formatRp(receiptToPrint.tax)}</span>
+                    </div>
+                  )}
+                  {receiptToPrint.discount > 0 && (
+                    <div className="flex justify-between">
+                      <span>Diskon</span>
+                      <span>-Rp{formatRp(receiptToPrint.discount)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Total */}
+                <div className="flex justify-between text-xs mb-2">
+                  <span>Total</span>
+                  <span>Rp{formatRp(receiptToPrint.total)}</span>
+                </div>
+
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
+
+                {/* Payment */}
+                <div className="text-xs space-y-1 mb-3">
+                  <div className="flex justify-between">
+                    <span>Metode Bayar</span>
+                    <span className="font-bold">{capitalizeFirst(receiptToPrint.paymentMethodName || receiptToPrint.paymentMethod)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Dibayar</span>
+                    <span>Rp{formatRp(receiptToPrint.paidAmount)}</span>
+                  </div>
+                  {receiptToPrint.changeAmount > 0 && (
+                    <div className="flex justify-between">
+                      <span>Kembali</span>
+                      <span className="font-bold">Rp{formatRp(receiptToPrint.changeAmount)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
+
+                {/* Footer */}
+                <div className="text-center text-xs">
+                  <div className="font-bold mb-1">Terima kasih atas kunjungan Anda</div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowReceiptPreview(false)}
+                  className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReceiptPreview(false);
+                    setTimeout(() => handlePrintReceipt(receiptToPrint), 100);
+                  }}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                >
+                  <Printer className="w-5 h-5" />
+                  Cetak Struk
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
 
       {/* Payment Modal */}
       <Modal
@@ -1371,7 +2201,7 @@ export default function PointOfSales() {
         <div className="space-y-6">
           {/* Total */}
           <div className="bg-blue-50 rounded-lg p-4 text-center">
-            <p className="text-sm text-gray-600 mb-1">Total Pembayaran</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Pembayaran</p>
             <p className="text-3xl font-bold text-blue-600">
               {formatCurrency(total)}
             </p>
@@ -1387,11 +2217,10 @@ export default function PointOfSales() {
                 <button
                   key={method.id}
                   onClick={() => setSelectedPaymentMethod(method.id)}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    isSelected
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
+                  className={`p-4 rounded-lg border-2 transition-all ${isSelected
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                    }`}
                 >
                   <div className="flex flex-col items-center">
                     <div
@@ -1399,10 +2228,10 @@ export default function PointOfSales() {
                     >
                       {IconDisplay}
                     </div>
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-gray-900 dark:text-white">
                       {method.name}
                     </span>
-                    <span className="text-xs text-gray-500 mt-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {method.description}
                     </span>
                   </div>
@@ -1428,7 +2257,7 @@ export default function PointOfSales() {
                           Jumlah Dibayar
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">
                             Rp
                           </span>
                           <input
@@ -1449,7 +2278,7 @@ export default function PointOfSales() {
                           <button
                             key={amount}
                             onClick={() => setPaidAmount(amount.toString())}
-                            className="py-2 px-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+                            className="py-2 px-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
                           >
                             {formatCurrency(amount)}
                           </button>
@@ -1459,7 +2288,7 @@ export default function PointOfSales() {
                       {/* Change */}
                       {paidAmount && parseFloat(paidAmount) >= total && (
                         <div className="bg-green-50 rounded-lg p-4 text-center">
-                          <p className="text-sm text-gray-600 mb-1">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                             Kembalian
                           </p>
                           <p className="text-2xl font-bold text-green-600">
@@ -1476,12 +2305,12 @@ export default function PointOfSales() {
                         <p className="text-sm font-medium text-gray-700 mb-2">
                           Transfer ke Rekening:
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                           <strong>{method.name}</strong> {method.bankAccount}
                           <br />
                           a.n. Koperasi Senyummu
                         </p>
-                        <p className="text-xs text-gray-500 mt-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                           *Harap lengkapi data pengirim di bawah
                         </p>
                       </div>
@@ -1614,7 +2443,7 @@ export default function PointOfSales() {
               <Scan className="w-12 h-12 mx-auto mb-3 text-green-600" />
               <p className="text-lg font-bold text-green-700">Scan QRIS</p>
               <p className="text-2xl font-bold mt-2">{formatCurrency(total)}</p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Order ID: {midtransTransaction.order_id}
               </p>
             </div>
@@ -1630,7 +2459,7 @@ export default function PointOfSales() {
                 ) : (
                   <div className="text-center">
                     <div className="spinner mx-auto mb-2"></div>
-                    <p className="text-xs text-gray-500">Loading QR Code...</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Loading QR Code...</p>
                   </div>
                 )}
               </div>
@@ -1639,7 +2468,7 @@ export default function PointOfSales() {
                 <p className="text-sm font-medium text-gray-700">
                   Koperasi Senyummu
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Scan dengan GoPay, OVO, Dana, LinkAja, atau bank apapun
                 </p>
               </div>
@@ -1661,11 +2490,11 @@ export default function PointOfSales() {
               </div>
             )}
 
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
               <p className="text-sm font-medium text-gray-700 mb-2">
                 Cara Bayar:
               </p>
-              <ol className="text-sm text-gray-600 space-y-1 pl-4">
+              <ol className="text-sm text-gray-600 dark:text-gray-400 space-y-1 pl-4">
                 <li>1. Buka aplikasi e-wallet atau mobile banking</li>
                 <li>2. Pilih menu "Scan QR" atau "QRIS"</li>
                 <li>3. Arahkan kamera ke QR code di atas</li>
@@ -1689,6 +2518,29 @@ export default function PointOfSales() {
           </div>
         )}
       </Modal>
+      {/* Cash Drawer Modal */}
+      <CashDrawerModal
+        isOpen={showDrawerModal}
+        type={drawerModalType}
+        currentDrawer={shiftStatus.drawer}
+        onClose={() => setShowDrawerModal(false)}
+        onSuccess={() => {
+          checkShiftStatus();
+          setShowDrawerModal(false);
+        }}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type || 'warning'}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+      />
     </Layout>
   );
 }

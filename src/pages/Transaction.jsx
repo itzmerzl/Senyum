@@ -175,7 +175,7 @@ export default function Transaction() {
       default:
         return {
           icon: <Clock className="w-4 h-4" />,
-          color: 'bg-gray-100 text-gray-800',
+          color: 'bg-gray-100 dark:bg-gray-700 text-gray-800',
           label: status
         };
     }
@@ -189,13 +189,13 @@ export default function Transaction() {
       .reduce((sum, t) => sum + t.total, 0)
   } : null;
 
-   const handleConfirmPayment = async () => {
+  const handleConfirmPayment = async () => {
     if (!selectedTransaction) return;
     
     try {
       setConfirmingPayment(true);
       
-      // 1. Update status transaksi menjadi completed
+      // 1. Prepare update data
       const updateData = {
         status: 'completed',
         paymentConfirmedAt: new Date().toISOString(),
@@ -204,16 +204,15 @@ export default function Transaction() {
         confirmedAmount: confirmPaymentData.confirmedAmount || selectedTransaction.total
       };
       
-      // Upload proof image if exists
+      // 2. Add proof image if exists
       if (confirmPaymentData.proofImage) {
-        // TODO: Implement image upload
-        // const imageUrl = await uploadImage(confirmPaymentData.proofImage);
-        // updateData.paymentProofUrl = imageUrl;
+        updateData.paymentProofImageBase64 = confirmPaymentData.proofImageBase64;
       }
       
+      // 3. Update transaction
       await updateTransaction(selectedTransaction.id, updateData);
       
-      // 2. Update saldo payment method (tambah saldo)
+      // 4. Update payment method balance (optional, bisa error tapi ga masalah)
       try {
         const method = paymentMethods.find(m => m.code === selectedTransaction.paymentMethod);
         if (method) {
@@ -226,25 +225,29 @@ export default function Transaction() {
         }
       } catch (error) {
         console.error('Error updating payment method balance:', error);
+        // Tidak throw error, karena transaksi tetap berhasil
       }
       
       toast.success('Pembayaran berhasil dikonfirmasi!', {
         duration: 4000,
       });
       
-      // Reset states
+      // 5. Reset states
       setShowConfirmPaymentModal(false);
       setShowDetailModal(false);
       setConfirmPaymentData({
         proofImage: null,
         proofImagePreview: null,
+        proofImageBase64: null, // ← Tambah ini juga
         notes: '',
         confirmedAmount: 0
       });
       
-      // Reload data
-      loadTransactions();
-      loadStats();
+      // 6. Reload data
+      await Promise.all([
+        loadTransactions(),
+        loadStats()
+      ]);
       
     } catch (error) {
       console.error('Error confirming payment:', error);
@@ -273,7 +276,8 @@ export default function Transaction() {
       setConfirmPaymentData(prev => ({
         ...prev,
         proofImage: file,
-        proofImagePreview: reader.result
+        proofImagePreview: reader.result,
+        proofImageBase64: reader.result // ← PENTING: Simpan ini!
       }));
     };
     reader.readAsDataURL(file);
@@ -520,7 +524,7 @@ export default function Transaction() {
       <body>
         <div class="receipt">
         <div class="bottom-spacer">
-            &nbsp;<br>
+            &nbsp;
           </div>
           <div class="content-area">
 ${padCenter('KOPERASI SENYUMMU', 32)}
@@ -598,6 +602,274 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   };
+
+  const handlePrintPendingInvoice = (transaction) => {
+      const printWindow = window.open('', '_blank', 'width=302,height=500');
+      
+      if (!printWindow) {
+        toast.error('Pop-up diblokir! Izinkan pop-up untuk print.');
+        return;
+      }
+      
+      // Helper functions
+      const padCenter = (text, width) => {
+        const str = String(text);
+        const totalPadding = Math.max(0, width - str.length);
+        const leftPadding = Math.floor(totalPadding / 2);
+        const rightPadding = totalPadding - leftPadding;
+        return ' '.repeat(leftPadding) + str + ' '.repeat(rightPadding);
+      };
+  
+      const padRight = (text, width) => {
+        const str = String(text);
+        return str + ' '.repeat(Math.max(0, width - str.length));
+      };
+      
+      const padLeft = (text, width) => {
+        const str = String(text);
+        return ' '.repeat(Math.max(0, width - str.length)) + str;
+      };
+      
+      const createRow = (label, value, isBoldValue = false, labelWidth = 15) => {
+        const TOTAL_WIDTH = 32;
+        const valueStyle = isBoldValue ? 'font-weight: bold;' : '';
+        
+        const trimmedLabel = label.length > labelWidth ? label.substring(0, labelWidth) : label;
+        const paddedLabel = padRight(trimmedLabel, labelWidth);
+        
+        const valueWidth = TOTAL_WIDTH - labelWidth;
+        const paddedValue = padLeft(value || '', valueWidth);
+        
+        return `<div style="font-size: 9pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 0; ${valueStyle}">${paddedLabel}${paddedValue}</div>`;
+      };
+      
+      // Content builder functions
+      const buildHeader = () => {
+        const lines = [];
+        lines.push(padCenter('KOPERASI SENYUMMU', 32));
+        lines.push(padCenter('Jln. Pemandian No. 88', 32));
+        lines.push(padCenter('Telp: 085183079329', 32));
+        return lines.join('\n');
+      };
+  
+      const buildTransactionInfo = (transaction, formattedDate) => {
+        const lines = [];
+        lines.push(padCenter('INVOICE PENDING', 32));
+        lines.push(createRow('No Invoice', transaction.invoiceNumber, true));
+        lines.push(createRow('Tanggal', formattedDate));
+        lines.push(createRow('Kasir', transaction.cashierName || 'Admin'));
+        lines.push(createRow('Pelanggan', transaction.customerName || 'Umum'));
+        return lines.join('\n');
+      };
+  
+      const buildTotals = (transaction) => {
+        const lines = [];
+        lines.push(createRow('Sub Total', `Rp${formatRp(transaction.subtotal)}`));
+        if (transaction.tax > 0) {
+          lines.push(createRow('Pajak', `Rp${formatRp(transaction.tax)}`));
+        }
+        if (transaction.discount > 0) {
+          lines.push(createRow('Diskon', `-Rp${formatRp(transaction.discount)}`));
+        }
+        lines.push(createRow('Total Tagihan', `Rp${formatRp(transaction.total)}`, true));
+        return lines.join('\n');
+      };
+  
+      const buildPaymentInstructions = (transaction) => {
+        if (transaction.paymentMethod === 'bank') {
+          const lines = [];
+          lines.push(`Transfer ke ${transaction.paymentMethodName || transaction.paymentMethod}`);
+          lines.push(`No. Rek: ${transaction.bankAccount || '-'}`);
+          lines.push(`a.n. ${transaction.accountName || 'Koperasi SenyumMu'}`);
+          lines.push(`Sejumlah: Rp${formatRp(transaction.total)}`);
+          return lines.join('\n'); // Gunakan \n untuk baris baru, bukan spasi
+        }
+        return '';
+      };
+  
+      const buildItemsHtml = (transaction) => {
+        return transaction.items.map(item => {
+          const TOTAL_WIDTH = 32;
+          
+          const itemNameRow = `<div style="font-size: 9pt; font-weight: bold; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 1px 0 0 0; padding: 0;">${item.productName}</div>`;
+          
+          const leftText = `${item.quantity} x Rp${formatRp(item.price)}`;
+          const rightText = `Rp${formatRp(item.subtotal)}`;
+          
+          const paddingNeeded = TOTAL_WIDTH - leftText.length - rightText.length;
+          const padding = ' '.repeat(Math.max(0, paddingNeeded));
+          
+          const itemDetailRow = `<div style="font-size: 8pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0 0 2px 0; padding: 0;">${leftText}${padding}<span style="font-weight: bold;">${rightText}</span></div>`;
+          
+          return itemNameRow + itemDetailRow;
+        }).join('');
+      };
+      
+      const formattedDate = new Date(transaction.transactionDate).toLocaleString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+  
+      const paymentMethodName = transaction.paymentMethodName || capitalizeFirst(transaction.paymentMethod);
+      const itemsHtml = buildItemsHtml(transaction);
+  
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Invoice Pending - ${transaction.invoiceNumber}</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
+            body {
+              width: 58mm;
+              margin: 0 auto;
+              padding: 2mm 1mm;
+              background: white;
+              color: black;
+              font-family: 'Courier New', Courier, monospace;
+              font-size: 9pt;
+              line-height: 1.3;
+            }
+            
+            .invoice {
+              width: 100%;
+            }
+            
+            .divider {
+              text-align: center;
+              margin: 1mm 0;
+              font-size: 8pt;
+              letter-spacing: -0.5px;
+            }
+            
+            .content-area {
+              font-family: 'Courier New', Courier, monospace;
+              white-space: pre;
+            }
+            
+            .footer {
+              text-align: center;
+              margin-top: 2mm;
+              margin-bottom: 5mm;
+              font-size: 8pt;
+            }
+  
+            .bottom-spacer {
+              height: 10mm;
+              font-size: 1pt;
+              line-height: 1;
+            }
+            
+            .status-pending {
+              background: #fef3c7;
+              border: 2px dashed #f59e0b;
+              padding: 2mm;
+              margin: 2mm 0;
+              text-align: center;
+              font-weight: bold;
+              font-size: 10pt;
+              color: #92400e;
+            }
+  
+            .payment-instructions {
+              background: #dbeafe;
+              border: 1px solid #3b82f6;
+              padding: 2mm;
+              margin: 2mm 0;
+              font-size: 8pt;
+            }
+  
+            .payment-instructions-title {
+              font-weight: bold;
+              font-size: 9pt;
+              margin-bottom: 1mm;
+              color: #1e40af;
+            }
+            
+            @media print {
+              @page {
+                size: 58mm auto;
+                margin: 0;
+              }
+              
+              body {
+                width: 58mm;
+                padding: 2mm 1mm 5mm 1mm;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice">
+            <div class="bottom-spacer">&nbsp;</div>
+            
+            <div class="content-area">${buildHeader()}</div>
+            
+            <div class="divider">--------------------------------</div>
+            
+            <div class="content-area">${buildTransactionInfo(transaction, formattedDate)}</div>
+            
+            <div class="divider">--------------------------------</div>
+            
+            <div class="content-area">${itemsHtml}</div>
+            
+            <div class="divider">--------------------------------</div>
+            
+            <div class="content-area">${buildTotals(transaction)}</div>
+            
+            <div class="divider">--------------------------------</div>
+            
+            <div class="content-area">Cara Pembayaran :</div>
+            
+            <div class="payment-instructions">${buildPaymentInstructions(transaction)}</div>
+            
+            <div class="divider">--------------------------------</div>
+            
+            <div class="footer">
+              Invoice ini belum lunas<br>
+              Simpan invoice ini sebagai bukti pembayaran.
+            </div>
+  
+            <div class="bottom-spacer">
+              &nbsp;<br>&nbsp;<br>&nbsp;<br>&nbsp;<br>
+            </div>
+          </div>
+          
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 250);
+            };
+            
+            window.onafterprint = function() {
+              setTimeout(function() {
+                window.close();
+              }, 500);
+            };
+  
+            setTimeout(function() {
+              if (!window.closed) {
+                window.close();
+              }
+            }, 5000);
+          </script>
+        </body>
+        </html>
+          `;
+        
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+  };
   
   const resetFilters = () => {
     setFilters({
@@ -636,7 +908,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
       case 'cash': return 'bg-green-100 text-green-800';
       case 'card': return 'bg-blue-100 text-blue-800';
       case 'qris': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800';
     }
   };
 
@@ -652,10 +924,10 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
       {/* Stats Cards */}
       {enhancedStats && (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Transaksi</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Transaksi</p>
                 <p className="text-2xl font-bold text-blue-600">{enhancedStats.totalTransactions}</p>
               </div>
               <div className="p-3 bg-blue-50 rounded-lg">
@@ -664,10 +936,10 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Pendapatan</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Pendapatan</p>
                 <p className="text-2xl font-bold text-green-600">{formatCurrency(enhancedStats.totalRevenue)}</p>
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
@@ -676,12 +948,12 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Pending</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Pending</p>
                 <p className="text-2xl font-bold text-yellow-600">{enhancedStats.pendingTransactions}</p>
-                <p className="text-xs text-gray-500 mt-1">{formatCurrency(enhancedStats.pendingAmount)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">{formatCurrency(enhancedStats.pendingAmount)}</p>
               </div>
               <div className="p-3 bg-yellow-50 rounded-lg">
                 <Clock className="w-6 h-6 text-yellow-600" />
@@ -689,10 +961,10 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Rata-rata Transaksi</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Rata-rata Transaksi</p>
                 <p className="text-2xl font-bold text-purple-600">{formatCurrency(enhancedStats.averageTransaction)}</p>
               </div>
               <div className="p-3 bg-purple-50 rounded-lg">
@@ -701,10 +973,10 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Dibatalkan</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Dibatalkan</p>
                 <p className="text-2xl font-bold text-red-600">{enhancedStats.cancelledTransactions}</p>
               </div>
               <div className="p-3 bg-red-50 rounded-lg">
@@ -716,7 +988,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
       )}
       
       {/* Toolbar */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
         <div className="flex flex-col md:flex-row gap-3 mb-4">
           <div className="flex-1 relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -745,7 +1017,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors relative ${
                 showFilters 
                   ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700'
               }`}
             >
               <Filter className="w-4 h-4" />
@@ -769,7 +1041,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
         
         {/* Advanced Filters */}
         {showFilters && (
-          <div className="pt-4 border-t border-gray-200">
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -857,7 +1129,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             {activeFilterCount() > 0 && (
               <button
                 onClick={resetFilters}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 rounded-lg text-sm font-medium"
               >
                 <X className="w-4 h-4" />
                 Reset Filter ({activeFilterCount()})
@@ -868,10 +1140,10 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
       </div>
       
       {/* Transactions Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">No Invoice</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Tanggal</th>
@@ -895,7 +1167,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 <tr>
                   <td colSpan="7" className="px-4 py-12 text-center">
                     <Receipt className="w-16 h-16 mx-auto mb-2 text-gray-400" />
-                    <p className="text-gray-500">Tidak ada transaksi</p>
+                    <p className="text-gray-500 dark:text-gray-300">Tidak ada transaksi</p>
                   </td>
                 </tr>
               ) : (
@@ -905,12 +1177,12 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
 
                   return (
                     <>
-                      <tr key={transaction.id} className={`hover:bg-gray-50 ${
+                      <tr key={transaction.id} className={`hover:bg-gray-50 dark:bg-gray-700 ${
                         transaction.status === 'pending' ? 'bg-yellow-50/30' : ''
                       }`}>
                         <td className="px-4 py-3">
                           <p className="font-medium text-blue-600">{transaction.invoiceNumber}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-300">
                             {transaction.items?.length || 0} item
                           </p>
                         </td>
@@ -924,12 +1196,12 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                           })}
                         </td>
                         <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-gray-900">{transaction.customerName}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{transaction.customerName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">
                             {transaction.customerType === 'student' ? 'Santri' : 'Umum'}
                           </p>
                         </td>
-                        <td className="px-4 py-3 text-sm font-bold text-gray-900">
+                        <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-white">
                           {formatCurrency(transaction.total)}
                         </td>
                         <td className="px-4 py-3">
@@ -1015,7 +1287,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                             )}
                             <button
                               onClick={() => setExpandedTransaction(isExpanded ? null : transaction.id)}
-                              className="p-2 hover:bg-gray-100 text-gray-600 rounded-lg"
+                              className="p-2 hover:bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg"
                             >
                               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </button>
@@ -1025,11 +1297,11 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                       
                       {/* Expanded Row */}
                       {isExpanded && (
-                        <tr className="bg-gray-50">
+                        <tr className="bg-gray-50 dark:bg-gray-700">
                           <td colSpan="7" className="px-4 py-3">
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <p className="text-gray-500 mb-2 font-medium">Items:</p>
+                                <p className="text-gray-500 dark:text-gray-300 mb-2 font-medium">Items:</p>
                                 {transaction.items?.map((item, idx) => (
                                   <div key={idx} className="flex justify-between py-1">
                                     <span>{item.productName} x{item.quantity}</span>
@@ -1039,16 +1311,16 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                               </div>
                               <div className="space-y-2">
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500">Kasir:</span>
+                                  <span className="text-gray-500 dark:text-gray-300">Kasir:</span>
                                   <span className="font-medium">{transaction.cashierName}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500">Dibayar:</span>
+                                  <span className="text-gray-500 dark:text-gray-300">Dibayar:</span>
                                   <span className="font-medium">{formatCurrency(transaction.paidAmount)}</span>
                                 </div>
                                 {transaction.changeAmount > 0 && (
                                   <div className="flex justify-between">
-                                    <span className="text-gray-500">Kembalian:</span>
+                                    <span className="text-gray-500 dark:text-gray-300">Kembalian:</span>
                                     <span className="font-medium text-green-600">{formatCurrency(transaction.changeAmount)}</span>
                                   </div>
                                 )}
@@ -1066,8 +1338,8 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
         </div>
         
         {filteredTransactions.length > 0 && (
-          <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-            <p className="text-sm text-gray-600">
+          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Menampilkan {filteredTransactions.length} dari {transactions.length} transaksi
             </p>
           </div>
@@ -1078,7 +1350,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
       <Modal
         isOpen={showReceiptPreview}
         onClose={() => setShowReceiptPreview(false)}
-        title="Preview Struk"
+        title={receiptToPrint?.status === 'pending' ? 'Preview Invoice Pending' : 'Preview Struk'}
         size="sm"
       >
         {receiptToPrint && (() => {
@@ -1089,6 +1361,8 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             hour: '2-digit',
             minute: '2-digit'
           });
+          
+          const isPending = receiptToPrint.status === 'pending';
           
           return (
             <div className="space-y-4">
@@ -1102,9 +1376,17 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 </div>
                 
                 {/* Divider */}
-                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
+                <div className="text-center text-xs mb-1">-----------------------------------------------------</div>
+                
+                {/* Status Badge untuk Pending */}
+                {isPending && (
+                  <div className="text-center">
+                    <span className="text-xs font-bold">INVOICE PENDING</span>
+                  </div>
+                )}
                 
                 {/* Transaction Info */}
+                
                 <div className="text-xs space-y-1 mb-3">
                   <div className="flex justify-between">
                     <span>No Invoice</span>
@@ -1164,38 +1446,67 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 </div>
                 
                 {/* Total */}
-                  <div className="flex justify-between text-xs mb-2">
-                    <span>Total</span>
-                    <span>Rp{formatRp(receiptToPrint.total)}</span>
-                  </div>
-                
-                {/* Divider */}
-                <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
-                
-                {/* Payment */}
-                <div className="text-xs space-y-1 mb-3">
-                  <div className="flex justify-between">
-                    <span>Metode Bayar</span>
-                    <span className="font-bold">{capitalizeFirst(receiptToPrint.paymentMethodName || receiptToPrint.paymentMethod)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Dibayar</span>
-                    <span>Rp{formatRp(receiptToPrint.paidAmount)}</span>
-                  </div>
-                  {receiptToPrint.changeAmount > 0 && (
-                    <div className="flex justify-between">
-                      <span>Kembali</span>
-                      <span className="font-bold">Rp{formatRp(receiptToPrint.changeAmount)}</span>
-                    </div>
-                  )}
+                <div className="flex justify-between text-xs mb-2">
+                  <span>{isPending ? 'Total Tagihan' : 'Total'}</span>
+                  <span className="font-bold">Rp{formatRp(receiptToPrint.total)}</span>
                 </div>
                 
                 {/* Divider */}
+                <div className="text-center text-xs mb-2">-----------------------------------------------------</div>
+                
+                {/* Payment Info - Berbeda untuk Pending vs Completed */}
+                {isPending ? (
+                  // Instruksi Pembayaran untuk Pending
+                  <div className="text-xs mb-3">
+                    <div className="text-center font-bold mb-2">Cara Pembayaran :</div>
+                    <div className="mb-1">
+                      Transfer ke {receiptToPrint.paymentMethodName || receiptToPrint.paymentMethod}
+                    </div>
+                    {receiptToPrint.paymentDetails && (
+                      <>
+                        {receiptToPrint.paymentDetails.bankAccount && (
+                          <div>No. Rek: {receiptToPrint.bankAccount}</div>
+                        )}
+                        {receiptToPrint.paymentDetails.accountName && (
+                          <div>a.n. {receiptToPrint.accountName || "Koperasi SenyumMu"}</div>
+                        )}
+                      </>
+                    )}
+                    <div>Sejumlah: Rp{formatRp(receiptToPrint.total)}</div>
+                  </div>
+                ) : (
+                  // Info Pembayaran untuk Completed
+                  <div className="text-xs space-y-1 mb-3">
+                    <div className="flex justify-between">
+                      <span>Metode Bayar</span>
+                      <span className="font-bold">{capitalizeFirst(receiptToPrint.paymentMethodName || receiptToPrint.paymentMethod)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Dibayar</span>
+                      <span>Rp{formatRp(receiptToPrint.paidAmount)}</span>
+                    </div>
+                    {receiptToPrint.changeAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span>Kembali</span>
+                        <span className="font-bold">Rp{formatRp(receiptToPrint.changeAmount)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Divider */}
                 <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
                 
-                {/* Footer */}
+                {/* Footer - Berbeda untuk Pending vs Completed */}
                 <div className="text-center text-xs">
-                  <div className="font-bold mb-1">Terima kasih atas kunjungan Anda</div>
+                  {isPending ? (
+                    <>
+                      <div className="font-bold mb-1">Invoice ini belum lunas</div>
+                      <div className="text-[10px]">Simpan invoice ini sebagai bukti pembayaran</div>
+                    </>
+                  ) : (
+                    <div className="font-bold mb-1">Terima kasih atas kunjungan Anda</div>
+                  )}
                 </div>
               </div>
 
@@ -1210,12 +1521,18 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 <button
                   onClick={() => {
                     setShowReceiptPreview(false);
-                    setTimeout(() => handlePrintReceipt(receiptToPrint), 100);
+                    setTimeout(() => {
+                      if (receiptToPrint.status === 'pending') {
+                        handlePrintPendingInvoice(receiptToPrint);
+                      } else {
+                        handlePrintReceipt(receiptToPrint);
+                      }
+                    }, 100);
                   }}
                   className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
                 >
                   <Printer className="w-5 h-5" />
-                  Cetak Struk
+                  {isPending ? 'Cetak Invoice' : 'Cetak Struk'}
                 </button>
               </div>
             </div>
@@ -1245,7 +1562,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 isCompleted ? 'bg-green-50 border-green-300' :
                 isCancelled ? 'bg-red-50 border-red-300' :
                 isRefunded ? 'bg-purple-50 border-purple-300' :
-                'bg-gray-50 border-gray-300'
+                'bg-gray-50 dark:bg-gray-700 border-gray-300'
               }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1258,7 +1575,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                       {statusInfo.icon}
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Status Transaksi</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Status Transaksi</p>
                       <p className={`text-xl font-bold ${
                         isPending ? 'text-yellow-700' :
                         isCompleted ? 'text-green-700' :
@@ -1303,22 +1620,22 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
               </div>
               
               {/* Header Info */}
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-500 uppercase font-medium mb-1">No Invoice</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-medium mb-1">No Invoice</p>
                     <p className="font-bold text-lg text-blue-600">{selectedTransaction.invoiceNumber}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase font-medium mb-1">Tanggal & Waktu</p>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-medium mb-1">Tanggal & Waktu</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
                       {new Date(selectedTransaction.transactionDate).toLocaleString('id-ID', {
                         day: '2-digit',
                         month: 'long',
                         year: 'numeric',
                       })}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
                       {new Date(selectedTransaction.transactionDate).toLocaleTimeString('id-ID', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -1327,44 +1644,44 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase font-medium mb-1">Pelanggan</p>
-                    <p className="font-medium text-gray-900">{selectedTransaction.customerName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-medium mb-1">Pelanggan</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{selectedTransaction.customerName}</p>
                     <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                       selectedTransaction.customerType === 'student' 
                         ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-700'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700'
                     }`}>
                       {selectedTransaction.customerType === 'student' ? 'Santri' : 'Umum'}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase font-medium mb-1">Kasir</p>
-                    <p className="font-medium text-gray-900">{selectedTransaction.cashierName || 'Admin'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-medium mb-1">Kasir</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{selectedTransaction.cashierName || 'Admin'}</p>
                   </div>
                 </div>
               </div>
               
               {/* Payment Method & Status */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="border-2 border-gray-200 rounded-lg p-4">
-                  <p className="text-xs text-gray-500 uppercase font-medium mb-2">Metode Pembayaran</p>
+                <div className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-medium mb-2">Metode Pembayaran</p>
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg ${getPaymentColor(selectedTransaction.paymentMethod)}`}>
                       {getPaymentIcon(selectedTransaction.paymentMethod)}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">
+                      <p className="font-bold text-gray-900 dark:text-white">
                         {selectedTransaction.paymentMethodName || capitalizeFirst(selectedTransaction.paymentMethod)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-300">
                         {capitalizeFirst(selectedTransaction.paymentMethod)}
                       </p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="border-2 border-gray-200 rounded-lg p-4">
-                  <p className="text-xs text-gray-500 uppercase font-medium mb-2">Status Pembayaran</p>
+                <div className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-medium mb-2">Status Pembayaran</p>
                   <span className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold ${statusInfo.color}`}>
                     {statusInfo.icon}
                     {statusInfo.label}
@@ -1491,26 +1808,26 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
               )}
               
               {/* Items Table */}
-              <div className="border-2 border-gray-200 rounded-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b-2 border-gray-200">
+              <div className="border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <p className="font-bold text-gray-800 flex items-center gap-2">
                       <ShoppingCart className="w-4 h-4" />
                       Daftar Item ({selectedTransaction.items?.length || 0})
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
                       Total Items: {selectedTransaction.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}
                     </p>
                   </div>
                 </div>
                 <div className="divide-y divide-gray-200">
                   {selectedTransaction.items?.map((item, idx) => (
-                    <div key={idx} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                    <div key={idx} className="px-4 py-3 hover:bg-gray-50 dark:bg-gray-700 transition-colors">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-bold text-gray-900">{item.productName}</p>
+                          <p className="font-bold text-gray-900 dark:text-white">{item.productName}</p>
                           <div className="flex items-center gap-3 mt-1">
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-gray-600 dark:text-gray-300">
                               {item.quantity} × {formatCurrency(item.price)}
                             </span>
                             {item.sku && (
@@ -1530,17 +1847,17 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
               </div>
               
               {/* Summary */}
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-gray-200">
-                <p className="text-xs text-gray-500 uppercase font-bold mb-3">Ringkasan Pembayaran</p>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-bold mb-3">Ringkasan Pembayaran</p>
                 <div className="space-y-2.5">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700">Sub Total</span>
-                    <span className="font-bold text-gray-900">{formatCurrency(selectedTransaction.subtotal)}</span>
+                    <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(selectedTransaction.subtotal)}</span>
                   </div>
                   {selectedTransaction.tax > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700">Pajak</span>
-                      <span className="font-bold text-gray-900">{formatCurrency(selectedTransaction.tax)}</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(selectedTransaction.tax)}</span>
                     </div>
                   )}
                   {selectedTransaction.discount > 0 && (
@@ -1552,7 +1869,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   
                   <div className="border-t-2 border-gray-300 pt-3 mt-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xl font-bold text-gray-900">TOTAL</span>
+                      <span className="text-xl font-bold text-gray-900 dark:text-white">TOTAL</span>
                       <span className="text-2xl font-bold text-blue-600">
                         {formatCurrency(selectedTransaction.total)}
                       </span>
@@ -1566,19 +1883,19 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 <div className={`rounded-lg p-4 border-2 ${
                   isPending ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'
                 }`}>
-                  <p className="text-xs text-gray-500 uppercase font-bold mb-3">Detail Pembayaran</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-bold mb-3">Detail Pembayaran</p>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className={isPending ? 'text-yellow-700' : 'text-gray-900'}>
+                      <span className={isPending ? 'text-yellow-700' : 'text-gray-900 dark:text-white'}>
                         Jumlah yang Harus Dibayar
                       </span>
-                      <span className="font-bold text-gray-900">{formatCurrency(selectedTransaction.total)}</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(selectedTransaction.total)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className={isPending ? 'text-yellow-700' : 'text-gray-900'}>
+                      <span className={isPending ? 'text-yellow-700' : 'text-gray-900 dark:text-white'}>
                         Jumlah Dibayar
                       </span>
-                      <span className="font-bold text-gray-900">{formatCurrency(selectedTransaction.paidAmount)}</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(selectedTransaction.paidAmount)}</span>
                     </div>
                     {selectedTransaction.changeAmount > 0 && (
                       <div className="flex justify-between items-center pt-2 border-t border-gray-300">
@@ -1594,8 +1911,8 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
 
               {/* Transaction Timeline */}
               {selectedTransaction.timeline && selectedTransaction.timeline.length > 0 && (
-                <div className="border-2 border-gray-200 rounded-lg p-4">
-                  <p className="text-xs text-gray-500 uppercase font-bold mb-3 flex items-center gap-2">
+                <div className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-bold mb-3 flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     Riwayat Transaksi
                   </p>
@@ -1604,8 +1921,8 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                       <div key={idx} className="flex gap-3">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{event.action}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{event.action}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">
                             {new Date(event.timestamp).toLocaleString('id-ID')} • {event.user}
                           </p>
                         </div>
@@ -1616,7 +1933,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
               )}
               
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t-2 border-gray-200">
+              <div className="flex gap-3 pt-4 border-t-2 border-gray-200 dark:border-gray-700">
                 {isCompleted && (
                   <>
                     <button
@@ -1776,7 +2093,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
 
             {/* Payment Details from Customer */}
             {selectedTransaction.paymentDetails && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   Informasi Transfer dari Customer
@@ -1784,24 +2101,24 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 <div className="space-y-2 text-sm">
                   {selectedTransaction.paymentDetails.bankAccount && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">No. Rekening :</span>
-                      <span className="font-bold text-gray-900">
+                      <span className="text-gray-600 dark:text-gray-300">No. Rekening :</span>
+                      <span className="font-bold text-gray-900 dark:text-white">
                         {selectedTransaction.paymentDetails.bankAccount}
                       </span>
                     </div>
                   )}
                   {selectedTransaction.paymentDetails.accountName && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Nama Rekening :</span>
-                      <span className="font-bold text-gray-900">
+                      <span className="text-gray-600 dark:text-gray-300">Nama Rekening :</span>
+                      <span className="font-bold text-gray-900 dark:text-white">
                         {selectedTransaction.paymentDetails.accountName}
                       </span>
                     </div>
                   )}
                   {selectedTransaction.paymentDetails.phoneNumber && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">No. HP:</span>
-                      <span className="font-bold text-gray-900">
+                      <span className="text-gray-600 dark:text-gray-300">No. HP:</span>
+                      <span className="font-bold text-gray-900 dark:text-white">
                         {selectedTransaction.paymentDetails.phoneNumber}
                       </span>
                     </div>
@@ -1816,7 +2133,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 Jumlah yang Diterima <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300 font-medium">
                   Rp
                 </span>
                 <input
@@ -1900,7 +2217,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             {/* Upload Proof of Payment */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bukti Transfer <span className="text-gray-500">(Opsional)</span>
+                Bukti Transfer <span className="text-gray-500 dark:text-gray-300">(Opsional)</span>
               </label>
               
               {confirmPaymentData.proofImagePreview ? (
@@ -1922,13 +2239,13 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:bg-gray-700 transition-colors">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <Upload className="w-8 h-8 mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
                       <span className="font-semibold">Click to upload</span> atau drag & drop
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG (Max 5MB)</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">PNG, JPG, JPEG (Max 5MB)</p>
                   </div>
                   <input
                     type="file"
@@ -1943,7 +2260,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             {/* Confirmation Notes */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Catatan Konfirmasi <span className="text-gray-500">(Opsional)</span>
+                Catatan Konfirmasi <span className="text-gray-500 dark:text-gray-300">(Opsional)</span>
               </label>
               <textarea
                 value={confirmPaymentData.notes}
@@ -1968,7 +2285,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             </div>
             
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 border-t-2 border-gray-200">
+            <div className="flex gap-3 pt-4 border-t-2 border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => setShowConfirmPaymentModal(false)}
                 disabled={confirmingPayment}
@@ -2036,7 +2353,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
               Maksimal: {formatCurrency(selectedTransaction?.total)}
             </p>
           </div>
