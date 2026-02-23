@@ -6,14 +6,14 @@ import { PrismaClient } from '@prisma/client';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Rate limiter: Max 5 attempts per 15 minutes per IP
+// Rate limiter: Max 5 attempts per 3 minutes per IP
 // Prevents brute force attacks on PIN
 const billingCheckLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 3 * 60 * 1000, // 3 minutes
     max: 5, // Max 5 requests
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Terlalu banyak percobaan. Silakan coba lagi dalam 15 menit.' }
+    message: { error: 'Terlalu banyak percobaan. Silakan coba lagi dalam 3 menit.' }
 });
 
 /**

@@ -991,11 +991,11 @@ if (JWT_SECRET.length < 32) {
 // Middleware to verify JWT - Imported from ./middleware/auth.js
 import { authenticate } from './middleware/auth.js';
 
-// Login Rate Limiter (NASA Level Security 🚀)
+// Login Rate Limiter
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 3 * 60 * 1000, // 3 minutes
     max: 5, // Limit each IP to 5 login requests per windowMs
-    message: { error: 'Terlalu banyak percobaan login. Silakan coba lagi dalam 15 menit.' },
+    message: { error: 'Terlalu banyak percobaan login. Silakan coba lagi dalam 3 menit.' },
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -1075,7 +1075,7 @@ app.post('/api/auth/login', loginLimiter, validateLoginInput, async (req, res) =
             // Increment failed attempts
             const newFailedAttempts = (user.failedLoginAttempts || 0) + 1;
             const shouldLock = newFailedAttempts >= 10;
-            const lockDuration = 30 * 60 * 1000; // 30 minutes
+            const lockDuration = 5 * 60 * 1000; // 5 minutes
 
             await prisma.user.update({
                 where: { id: user.id },
@@ -1090,7 +1090,7 @@ app.post('/api/auth/login', loginLimiter, validateLoginInput, async (req, res) =
             if (shouldLock) {
                 console.log(`[Security] Account '${username}' LOCKED after ${newFailedAttempts} failed attempts from IP ${ipAddress}`);
                 return res.status(423).json({
-                    error: 'Akun terkunci selama 30 menit karena terlalu banyak percobaan gagal.',
+                    error: 'Akun terkunci selama 5 menit karena terlalu banyak percobaan gagal.',
                     lockedUntil: new Date(Date.now() + lockDuration)
                 });
             }
