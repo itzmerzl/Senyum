@@ -27,7 +27,7 @@ import {
   Check // New
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
-import ThemeToggle from '../common/ThemeSelector';
+import ThemeToggle from '../common/ThemeToggle';
 import { getNotifications, markAsRead } from '../../services/notificationService';
 
 export default function Layout({ children }) {

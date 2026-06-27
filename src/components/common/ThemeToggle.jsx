@@ -1,26 +1,25 @@
-import { useEffect } from 'react';
-import { Moon, Sun } from 'lucide-react';
-import useThemeStore from '../../store/themeStore';
+import { useTheme } from '../../context/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 
 export default function ThemeToggle() {
-    const { theme, toggleTheme } = useThemeStore();
-
-    useEffect(() => {
-        const root = window.document.documentElement;
-        if (theme === 'dark') {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
-    }, [theme]);
+    const { theme, toggleTheme } = useTheme();
 
     return (
         <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-yellow-400 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors group relative"
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            {theme === 'dark' ? (
+                <Sun className="w-5 h-5 text-yellow-500" />
+            ) : (
+                <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            )}
+
+            {/* Tooltip */}
+            <span className="absolute right-0 top-full mt-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </span>
         </button>
     );
 }

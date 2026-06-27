@@ -15,6 +15,15 @@ export default {
         'theme-text': 'var(--color-text)',
         'theme-text-secondary': 'var(--color-textSecondary)',
         'theme-border': 'var(--color-border)',
+        gray: {
+          250: '#e2e8f0',
+          450: '#6b7280',
+          750: '#2d3748',
+          850: '#1a202c',
+        },
+        red: {
+          650: '#dc2626',
+        }
       },
       transitionDuration: {
         'theme': 'var(--theme-transition)',

@@ -99,7 +99,7 @@ export const getStudentStats = async () => {
 export const exportStudents = async (filters = {}) => {
   // Fetch all students with large limit to ensure complete export
   const response = await getAllStudents({ limit: 100000, ...filters });
-  const students = response.data || response;
+  let students = response.data || response;
 
   // Apply filters if provided
   if (filters.status) {

@@ -15,7 +15,8 @@
 
   /* Dark mode body background */
   .dark body {
-    background-color: #111827; /* gray-900 */
+    background-color: #111827;
+    /* gray-900 */
   }
 
   /* Theme System - CSS Variables */
@@ -87,7 +88,7 @@
   }
 
   .card-hover {
-    @apply card hover:shadow-md hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-200 group;
+    @apply card hover:shadow-md hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-200;
   }
 
   .card-interactive {
