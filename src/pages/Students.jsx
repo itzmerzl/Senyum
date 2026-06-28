@@ -628,37 +628,37 @@ export default function Students() {
         )}
 
         {/* Search & Filters Toolbar */}
-        <div className="bg-white dark:bg-gray-800 px-6 py-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-4">
+        <div className="bg-white dark:bg-slate-900 px-6 py-4 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.05),0_1px_2px_-1px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800/80">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
             {/* Left: Search - Dynamic Width */}
             <div className="flex-1">
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="w-5 h-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Search className="w-4 h-4 text-slate-400" />
                 </div>
                 <DebouncedInput
                   type="text"
                   value={searchQuery}
                   onChange={setSearchQuery}
-                  className="w-full pl-10 pr-10 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 text-sm"
                   placeholder="Cari nama santri, wali, no. HP, atau no. registrasi..."
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center hover:bg-gray-100 dark:hover:bg-gray-600 rounded-r-lg transition-colors"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-r-xl transition-colors"
                   >
-                    <X className="w-4 h-4 text-gray-400" />
+                    <X className="w-4 h-4 text-slate-400" />
                   </button>
                 )}
               </div>
             </div>
 
             {/* Right: Action Buttons */}
-            <div className="flex gap-2 flex-wrap lg:flex-nowrap">
+            <div className="flex gap-2 flex-wrap items-center">
               <button
                 onClick={() => setShowPromotionModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm"
+                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100/80 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl transition-all text-sm active:scale-[0.98]"
                 title="Kenaikan Kelas / Kelulusan"
               >
                 <GraduationCap className="w-4 h-4" />
@@ -670,7 +670,7 @@ export default function Students() {
                 <div className="relative bulk-actions-container">
                   <button
                     onClick={() => setShowBulkActionsDropdown(!showBulkActionsDropdown)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg font-medium transition-all shadow-md whitespace-nowrap animate-in fade-in"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 font-semibold rounded-xl transition-all text-sm active:scale-[0.98] whitespace-nowrap animate-in fade-in"
                     title="Aksi untuk item terpilih"
                   >
                     <MoreHorizontal className="w-4 h-4" />
@@ -678,18 +678,18 @@ export default function Students() {
                     <ChevronRight className={`w-4 h-4 transition-transform ${showBulkActionsDropdown ? 'rotate-90' : ''}`} />
                   </button>
                   {showBulkActionsDropdown && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 z-50 overflow-hidden">
                       <button
                         onClick={() => {
                           setShowBulkDeleteConfirm(true);
                           setShowBulkActionsDropdown(false);
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors text-left border-b border-gray-100 dark:border-gray-700"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400 transition-colors text-left border-b border-slate-100 dark:border-slate-850"
                       >
                         <Trash2 className="w-4 h-4" />
                         <div>
-                          <div className="font-medium">Hapus {selectedCount} Data</div>
-                          <div className="text-xs opacity-75">Hapus santri terpilih</div>
+                          <div className="font-semibold text-sm">Hapus {selectedCount} Data</div>
+                          <div className="text-[11px] opacity-75">Hapus santri terpilih</div>
                         </div>
                       </button>
                       <button
@@ -697,12 +697,12 @@ export default function Students() {
                           setShowBulkStatusModal(true);
                           setShowBulkActionsDropdown(false);
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 transition-colors text-left border-b border-gray-100 dark:border-gray-700"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-amber-600 dark:text-amber-400 transition-colors text-left border-b border-slate-100 dark:border-slate-850"
                       >
                         <Edit className="w-4 h-4" />
                         <div>
-                          <div className="font-medium">Ubah Status</div>
-                          <div className="text-xs opacity-75">Aktif / Lulus / Tidak Aktif</div>
+                          <div className="font-semibold text-sm">Ubah Status</div>
+                          <div className="text-[11px] opacity-75">Aktif / Lulus / Tidak Aktif</div>
                         </div>
                       </button>
                       <button
@@ -710,12 +710,12 @@ export default function Students() {
                           handleBulkPrintPin();
                           setShowBulkActionsDropdown(false);
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-400 transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-violet-50 dark:hover:bg-violet-950/20 text-violet-600 dark:text-violet-400 transition-colors text-left"
                       >
                         <Printer className="w-4 h-4" />
                         <div>
-                          <div className="font-medium">Cetak PIN Letter</div>
-                          <div className="text-xs opacity-75">Format surat resmi</div>
+                          <div className="font-semibold text-sm">Cetak PIN Letter</div>
+                          <div className="text-[11px] opacity-75">Format surat resmi</div>
                         </div>
                       </button>
                     </div>
@@ -725,24 +725,24 @@ export default function Students() {
 
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                className="btn-primary flex items-center gap-1.5 text-sm"
               >
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Tambah</span>
+                <span>Tambah</span>
               </button>
 
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors relative whitespace-nowrap ${showFilters
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold transition-all relative text-sm active:scale-[0.98] ${showFilters
+                  ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-300'
                   }`}
                 title="Filter santri berdasarkan status, program, kelas"
               >
                 <SlidersHorizontal className="w-4 h-4" />
-                <span className="hidden sm:inline">Filter</span>
+                <span>Filter</span>
                 {activeFilterCount() > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {activeFilterCount()}
                   </span>
                 )}
@@ -752,26 +752,26 @@ export default function Students() {
               <div className="relative excel-dropdown-container">
                 <button
                   onClick={() => setShowExcelDropdown(!showExcelDropdown)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100/80 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 font-semibold rounded-xl transition-all text-sm active:scale-[0.98]"
                   title="Import, Export, atau Update Massal via Excel"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
-                  <span className="hidden sm:inline">Excel</span>
-                  <ChevronRight className={`w-4 h-4 transition-transform ${showExcelDropdown ? 'rotate-90' : ''}`} />
+                  <span>Excel</span>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showExcelDropdown ? 'rotate-90' : ''}`} />
                 </button>
                 {showExcelDropdown && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 z-50 overflow-hidden">
                     <button
                       onClick={() => {
                         setShowImportModal(true);
                         setShowExcelDropdown(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 transition-colors text-left border-b border-gray-100 dark:border-gray-700"
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 transition-colors text-left border-b border-slate-100 dark:border-slate-850"
                     >
                       <Upload className="w-4 h-4" />
                       <div>
-                        <div className="font-medium">Import Excel</div>
-                        <div className="text-xs opacity-75">Tambah santri baru dari file</div>
+                        <div className="font-semibold text-sm">Import Excel</div>
+                        <div className="text-[11px] opacity-75">Tambah santri baru dari file</div>
                       </div>
                     </button>
                     <button
@@ -779,12 +779,12 @@ export default function Students() {
                         handleExport();
                         setShowExcelDropdown(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400 transition-colors text-left border-b border-gray-100 dark:border-gray-700"
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 transition-colors text-left border-b border-slate-100 dark:border-slate-850"
                     >
                       <Download className="w-4 h-4" />
                       <div>
-                        <div className="font-medium">Export Excel ({totalItems})</div>
-                        <div className="text-xs opacity-75">Download data hasil filter</div>
+                        <div className="font-semibold text-sm">Export Excel ({totalItems})</div>
+                        <div className="text-[11px] opacity-75">Download data hasil filter</div>
                       </div>
                     </button>
                     <button
@@ -792,12 +792,12 @@ export default function Students() {
                         setShowUpdateModal(true);
                         setShowExcelDropdown(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-50 dark:hover:bg-orange-900/20 text-orange-600 dark:text-orange-400 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-amber-600 dark:text-amber-400 transition-colors text-left"
                     >
                       <RefreshCw className="w-4 h-4" />
                       <div>
-                        <div className="font-medium">Update Massal</div>
-                        <div className="text-xs opacity-75">Edit data dari file Excel</div>
+                        <div className="font-semibold text-sm">Update Massal</div>
+                        <div className="text-[11px] opacity-75">Edit data dari file Excel</div>
                       </div>
                     </button>
                   </div>
@@ -806,19 +806,19 @@ export default function Students() {
 
               <button
                 onClick={handlePrintTable}
-                className="p-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
+                className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 rounded-xl transition-all active:scale-[0.98]"
                 title="Print daftar santri"
               >
-                <Printer className="w-5 h-5" />
+                <Printer className="w-4 h-4" />
               </button>
 
               {activeFilterCount() > 0 && (
                 <button
                   onClick={resetFilters}
-                  className="p-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg font-medium transition-colors"
+                  className="p-2 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 rounded-xl transition-all active:scale-[0.98]"
                   title="Reset Filter"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -947,178 +947,176 @@ export default function Students() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Table Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        </div>        {/* Table Content */}
+        <div className="table-container">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+              <thead className="table-header">
                 <tr>
-                  <th className="px-4 py-3 text-left">
+                  <th className="px-6 py-3.5 text-left w-12">
                     <div className="flex items-center">
                       <input
                         type="checkbox"
                         checked={isAllPageSelected}
                         onChange={handleSelectAll}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
+                        className="w-4.5 h-4.5 text-indigo-650 rounded-lg border-slate-300 focus:ring-indigo-500/30 dark:bg-slate-800 dark:border-slate-700"
                       />
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">Foto</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">No Registrasi</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kelas</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Program</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tagihan</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aksi</th>
+                  <th className="table-header-cell w-16">Foto</th>
+                  <th className="table-header-cell">No Registrasi</th>
+                  <th className="table-header-cell">Nama</th>
+                  <th className="table-header-cell">Kelas</th>
+                  <th className="table-header-cell">Program</th>
+                  <th className="table-header-cell">Tagihan</th>
+                  <th className="table-header-cell">Status</th>
+                  <th className="table-header-cell text-center">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
                 {loading ? (
                   // Skeleton Loading Rows
                   [...Array(10)].map((_, i) => (
                     <tr key={`skeleton-${i}`} className="animate-pulse">
-                      <td className="px-4 py-3">
-                        <div className="w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                      <td className="px-6 py-4">
+                        <div className="w-4.5 h-4.5 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+                      <td className="px-6 py-4">
+                        <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full"></div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="h-4 w-28 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-28 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4">
                         <div className="space-y-2">
-                          <div className="h-4 w-40 bg-gray-200 dark:bg-gray-600 rounded"></div>
-                          <div className="h-3 w-24 bg-gray-100 dark:bg-gray-700 rounded"></div>
+                          <div className="h-4 w-40 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                          <div className="h-3 w-24 bg-slate-50 dark:bg-slate-850 rounded-lg"></div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="h-4 w-16 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-16 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="h-6 w-20 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+                      <td className="px-6 py-4">
+                        <div className="h-6 w-20 bg-slate-100 dark:bg-slate-800 rounded-full"></div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-20 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="h-6 w-16 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+                      <td className="px-6 py-4">
+                        <div className="h-6 w-16 bg-slate-100 dark:bg-slate-800 rounded-full"></div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4">
                         <div className="flex justify-center gap-2">
-                          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-lg"></div>
-                          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-lg"></div>
-                          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-lg"></div>
+                          <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-xl"></div>
+                          <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-xl"></div>
+                          <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-xl"></div>
                         </div>
                       </td>
                     </tr>
                   ))
                 ) : students.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="px-4 py-16 text-center">
+                    <td colSpan="9" className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                          <User className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/40 rounded-full flex items-center justify-center mb-4">
+                          <User className="w-8 h-8 text-slate-400 dark:text-slate-500" />
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Tidak ada data santri</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Silakan tambah santri baru untuk memulai</p>
+                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-1">Tidak ada data santri</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-450">Silakan tambah santri baru untuk memulai</p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   students.map((student) => (
-                    <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <td className="px-4 py-3">
+                    <tr key={student.id} className="table-row">
+                      <td className="px-6 py-4">
                         <div className="flex items-center">
                           <input
                             type="checkbox"
                             checked={selectedIds.includes(student.id)}
                             onChange={() => handleSelectStudent(student.id)}
-                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
+                            className="w-4.5 h-4.5 text-indigo-650 rounded-lg border-slate-350 focus:ring-indigo-500/30 dark:bg-slate-800 dark:border-slate-700"
                           />
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+                      <td className="px-6 py-4">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60 shadow-sm flex-shrink-0">
                           {student.photoUrl ? (
                             <img src={student.photoUrl} alt={student.fullName} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <User size={20} className="text-gray-400 dark:text-gray-500" />
+                              <User size={18} className="text-slate-400 dark:text-slate-500" />
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-300">{student.registrationNumber}</td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900 dark:text-white">{student.fullName}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <td className="table-cell font-mono text-[13px] font-medium text-slate-500 dark:text-slate-450">{student.registrationNumber}</td>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-900 dark:text-white text-[14.5px]">{student.fullName}</div>
+                        <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mt-0.5">
                           {student.gender === 'L' ? 'Laki-laki' : student.gender === 'P' ? 'Perempuan' : '-'}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{student.className}</td>
-                      <td className="px-4 py-3">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                      <td className="table-cell font-semibold">{student.className}</td>
+                      <td className="px-6 py-4">
+                        <span className="badge badge-info">
                           {student.program || '-'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-medium text-red-600 dark:text-red-400">
+                      <td className="table-cell font-bold text-rose-600 dark:text-rose-450">
                         {formatCurrency(student.balance || 0)}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${student.status === 'active'
-                          ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-800'
+                      <td className="px-6 py-4">
+                        <span className={`badge ${student.status === 'active'
+                          ? 'badge-success'
                           : student.status === 'graduated'
-                            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
+                            ? 'badge-info'
+                            : 'badge-gray'
                           }`}>
                           {student.status === 'active' ? 'Aktif' : student.status === 'graduated' ? 'Lulus' : 'Tidak Aktif'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => {
                               setSelectedStudent(student);
                               setShowDetailModal(true);
                             }}
-                            className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded transition-colors"
+                            className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 rounded-xl transition-all"
                             title="Lihat Detail"
                           >
-                            <Eye size={16} />
+                            <Eye size={15} />
                           </button>
                           <button
                             onClick={() => {
                               setSelectedStudent(student);
                               setShowEditModal(true);
                             }}
-                            className="p-1.5 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 rounded transition-colors"
+                            className="p-2 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-amber-650 dark:text-amber-400 rounded-xl transition-all"
                             title="Edit"
                           >
-                            <Edit size={16} />
+                            <Edit size={15} />
                           </button>
                           <button
                             onClick={() => {
                               setSelectedStudent(student);
                               setShowDeleteDialog(true);
                             }}
-                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded transition-colors"
+                            className="p-2 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-650 dark:text-rose-400 rounded-xl transition-all"
                             title="Hapus"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={15} />
                           </button>
                           <button
                             onClick={() => {
                               // Navigate to Liabilities with student filter
                               navigate(`/liabilities?studentId=${student.id}`);
                             }}
-                            className="p-1.5 hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400 rounded transition-colors"
+                            className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-650 dark:text-emerald-400 rounded-xl transition-all"
                             title="Tambah Pembayaran"
                           >
-                            <Download size={16} />
+                            <Download size={15} />
                           </button>
                           <button
                             onClick={() => {
@@ -1133,13 +1131,13 @@ export default function Students() {
                               }
                             }}
                             disabled={!student.guardianPhone && !student.guardianWhatsapp}
-                            className={`p-1.5 rounded transition-colors ${student.guardianPhone || student.guardianWhatsapp
-                              ? 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                              : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                            className={`p-2 rounded-xl transition-all ${student.guardianPhone || student.guardianWhatsapp
+                              ? 'hover:bg-teal-50 dark:hover:bg-teal-950/30 text-teal-650 dark:text-teal-400'
+                              : 'text-slate-350 dark:text-slate-700 cursor-not-allowed'
                               }`}
                             title={student.guardianPhone || student.guardianWhatsapp ? 'Hubungi via WhatsApp' : 'Tidak ada nomor HP'}
                           >
-                            <MessageCircle size={16} />
+                            <MessageCircle size={15} />
                           </button>
                         </div>
                       </td>
@@ -1152,13 +1150,13 @@ export default function Students() {
 
           {/* Pagination Controls */}
           {totalItems > 0 && (
-            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex flex-col sm:flex-row justify-between items-center gap-3 text-sm">
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs font-semibold">
+              <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                 <span className="hidden sm:inline">Tampilkan</span>
                 <select
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                  className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -1168,13 +1166,13 @@ export default function Students() {
                 <span>dari {totalItems} santri</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-850 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] border border-slate-200/50 dark:border-slate-850 text-slate-500 dark:text-slate-400"
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={14} />
                 </button>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -1189,22 +1187,22 @@ export default function Students() {
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${currentPage === pageNum
-                          ? 'bg-blue-600 text-white font-medium'
-                          : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300'
+                        className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all active:scale-[0.98] text-xs font-bold ${currentPage === pageNum
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-650 dark:text-slate-400 border border-slate-200/50 dark:border-slate-850'
                           }`}
                       >
                         {pageNum}
                       </button>
-                    )
+                    );
                   })}
                 </div>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-850 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] border border-slate-200/50 dark:border-slate-850 text-slate-500 dark:text-slate-400"
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={14} />
                 </button>
               </div>
             </div>

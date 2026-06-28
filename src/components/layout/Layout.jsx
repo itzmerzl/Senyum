@@ -1,408 +1,154 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  ShoppingCart,
-  Users,
-  CreditCard,
-  Package,
-  Tags,
-  Building2,
-  TrendingUp,
-  UserCog,
-  Settings,
-  Menu,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  LogOut,
-  Landmark,
-  FileText,
-  ClipboardList,
-  ScrollText,
-  Shield,
-  History,
-  Bell, // New
-  Check // New
-} from 'lucide-react';
-import useAuthStore from '../../store/authStore';
-import ThemeToggle from '../common/ThemeToggle';
-import { getNotifications, markAsRead } from '../../services/notificationService';
+import { useState, useEffect, useCallback } from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import { ChevronRight, Home } from 'lucide-react';
+import BottomNav from './BottomNav';
+import Sidebar from './Sidebar';
+import SlimTopBar from './SlimTopBar';
+import { getBreadcrumb } from './menuGroups';
 
-export default function Layout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [expandedGroups, setExpandedGroups] = useState({
-    masterData: true,
-    transaksi: true,
-    laporan: false,
-    manajemen: false,
-    logs: false
-  });
+// ─── Breadcrumb ───────────────────────────────────────────────────────────────
+function Breadcrumb() {
+  const { pathname } = useLocation();
+  const crumbs = getBreadcrumb(pathname);
 
-  // Notification State
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [loadingNotif, setLoadingNotif] = useState(false);
-
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
-
-  // Auto-expand group based on current route
-  const pathToGroup = {
-    '/students': 'masterData', '/products': 'masterData', '/categories': 'masterData', '/suppliers': 'masterData', '/item-bundles': 'masterData',
-    '/pos': 'transaksi', '/transactions': 'transaksi', '/liabilities': 'transaksi',
-    '/reports': 'laporan',
-    '/payment-methods': 'manajemen', '/stock-opname': 'manajemen', '/users': 'manajemen', '/settings': 'manajemen',
-    '/audit/logs': 'logs', '/audit/login-history': 'logs', '/audit/security': 'logs'
-  };
-
-  // Keep group expanded when on its route
-  useEffect(() => {
-    const groupId = pathToGroup[location.pathname];
-    if (groupId) {
-      setExpandedGroups(prev => ({ ...prev, [groupId]: true }));
-    }
-  }, [location.pathname]);
-
-  // Load Notifications
-  const loadNotifications = async () => {
-    try {
-      const data = await getNotifications(5); // Get latest 5
-      setNotifications(data.notifications || []);
-      setUnreadCount(data.unreadCount || 0);
-    } catch (e) {
-      console.error("Failed to load notifications", e);
-    }
-  };
-
-  useEffect(() => {
-    loadNotifications();
-    const interval = setInterval(loadNotifications, 60000); // Poll every minute
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleNotificationClick = async (notif) => {
-    if (!notif.isRead) {
-      await markAsRead(notif.id);
-      loadNotifications(); // Refresh
-    }
-    setShowNotifications(false);
-    if (notif.link) {
-      navigate(notif.link);
-    }
-  };
-
-  const handleMarkAllRead = async () => {
-    await markAsRead('all');
-    loadNotifications();
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const toggleGroup = (groupName) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupName]: !prev[groupName]
-    }));
-  };
-
-  const menuGroups = [
-    {
-      id: 'dashboard',
-      type: 'single',
-      path: '/dashboard',
-      icon: LayoutDashboard,
-      label: 'Dashboard',
-      permission: null
-    },
-    {
-      id: 'masterData',
-      type: 'group',
-      label: 'Master Data',
-      icon: Package,
-      items: [
-        { path: '/students', icon: Users, label: 'Santri', permission: 'manage_students' },
-        { path: '/billing-templates', icon: FileText, label: 'Tagihan', permission: 'manage_liabilities' },
-        { path: '/item-bundles', icon: Package, label: 'Paket Barang', permission: 'manage_products' },
-        { path: '/products', icon: Package, label: 'Produk', permission: 'manage_products' },
-        { path: '/categories', icon: Tags, label: 'Kategori', permission: 'manage_products' },
-        { path: '/suppliers', icon: Building2, label: 'Supplier', permission: 'manage_products' },
-      ]
-    },
-    {
-      id: 'transaksi',
-      type: 'group',
-      label: 'Transaksi',
-      icon: ShoppingCart,
-      items: [
-        { path: '/pos', icon: ShoppingCart, label: 'Point of Sales', permission: 'manage_pos' },
-        { path: '/transactions', icon: FileText, label: 'Riwayat Transaksi', permission: 'view_transactions' },
-        { path: '/liabilities', icon: CreditCard, label: 'Tanggungan', permission: 'manage_liabilities' },
-      ]
-    },
-    {
-      id: 'laporan',
-      type: 'group',
-      label: 'Laporan',
-      icon: TrendingUp,
-      items: [
-        { path: '/reports', icon: TrendingUp, label: 'Laporan', permission: 'view_reports' },
-      ]
-    },
-    {
-      id: 'manajemen',
-      type: 'group',
-      label: 'Manajemen',
-      icon: Settings,
-      items: [
-        { path: '/payment-methods', icon: Landmark, label: 'Metode Bayar', permission: 'manage_pos' },
-        { path: '/stock-opname', icon: ClipboardList, label: 'Stock Opname', permission: 'manage_products' },
-        { path: '/users', icon: UserCog, label: 'Pengguna', permission: 'manage_users' },
-        { path: '/settings', icon: Settings, label: 'Pengaturan', permission: 'manage_settings' },
-      ]
-    },
-    {
-      id: 'logs',
-      type: 'group',
-      label: 'Logs & Audit',
-      icon: ScrollText,
-      adminOnly: true, // Only visible to admin role
-      items: [
-        { path: '/audit/logs', icon: ScrollText, label: 'Audit Logs', permission: 'manage_settings' },
-        { path: '/audit/login-history', icon: History, label: 'Login History', permission: 'manage_settings' },
-        { path: '/audit/security', icon: Shield, label: 'Security Logs', permission: 'manage_settings' },
-      ]
-    },
-  ];
-
-  const isActive = (path) => location.pathname === path;
+  // Jangan render di dashboard — sudah ada welcome banner
+  if (pathname === '/dashboard' || crumbs.length <= 1) return null;
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
-      {/* Sidebar */}
-      <aside
-        className={`${sidebarOpen ? 'w-64' : 'w-20'
-          } bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col shadow-sm relative z-20`}
-      >
-        {/* Logo/Brand */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <ShoppingCart className="w-6 h-6 text-white" />
-            </div>
-            {sidebarOpen && (
-              <div className="overflow-hidden">
-                <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">Koperasi</h1>
-                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">POS System</p>
-              </div>
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center gap-1 px-1 mb-3 -mt-1"
+    >
+      {crumbs.map((crumb, i) => {
+        const isLast = i === crumbs.length - 1;
+        return (
+          <span key={i} className="flex items-center gap-1 min-w-0">
+            {i > 0 && (
+              <ChevronRight
+                className="w-3 h-3 text-[var(--color-text-muted)] shrink-0 opacity-50"
+                strokeWidth={2}
+              />
             )}
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-          {menuGroups
-            .filter(group => !group.adminOnly || user?.role === 'admin')
-            .map((group) => {
-              if (group.type === 'single') {
-                const Icon = group.icon;
-                return (
-                  <Link
-                    key={group.id}
-                    to={group.path}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${isActive(group.path)
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
-                      : 'text-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {sidebarOpen && <span className="font-medium truncate">{group.label}</span>}
-                  </Link>
-                );
-              }
-
-              // Group menu
-              const GroupIcon = group.icon;
-              const isExpanded = expandedGroups[group.id];
-
-              return (
-                <div key={group.id} className="space-y-1">
-                  {/* Group Header */}
-                  <button
-                    onClick={() => sidebarOpen && toggleGroup(group.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <GroupIcon className="w-5 h-5 flex-shrink-0" />
-                      {sidebarOpen && <span className="font-semibold text-sm tracking-wide">{group.label}</span>}
-                    </div>
-                    {sidebarOpen && (
-                      isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
-
-                  {/* Group Items */}
-                  {sidebarOpen && isExpanded && (
-                    <div className="ml-2 space-y-1">
-                      {group.items.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.path}
-                            to={item.path}
-                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${isActive(item.path)
-                              ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
-                              : 'text-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200'
-                              }`}
-                          >
-                            <Icon className="w-4 h-4 flex-shrink-0" />
-                            <span className="text-sm truncate">{item.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-        </nav>
-
-        {/* Collapse Button */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="m-4 p-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center"
-        >
-          {sidebarOpen ? (
-            <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          ) : (
-            <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          )}
-        </button>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 z-10">
-          <div className="px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            {isLast || !crumb.path ? (
+              <span
+                className={`text-[11px] font-semibold truncate ${isLast
+                    ? 'text-[var(--color-text)]'
+                    : 'text-[var(--color-text-muted)]'
+                  }`}
               >
-                <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-              </button>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {location.pathname === '/' ? 'Dashboard' : location.pathname.slice(1).charAt(0).toUpperCase() + location.pathname.slice(2).replace('-', ' ')}
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {new Date().toLocaleDateString('id-ID', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              {/* Notification Bell */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative"
-                >
-                  <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                  )}
-                </button>
-
-                {/* Dropdown */}
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-                    <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Notifikasi</h3>
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={handleMarkAllRead}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                        >
-                          <Check className="w-3 h-3" /> Tandai semua dibaca
-                        </button>
-                      )}
-                    </div>
-                    <div className="max-h-96 overflow-y-auto">
-                      {notifications.length > 0 ? (
-                        notifications.map((notif) => (
-                          <div
-                            key={notif.id}
-                            onClick={() => handleNotificationClick(notif)}
-                            className={`p-3 border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${!notif.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${!notif.isRead ? 'bg-blue-500' : 'bg-transparent'}`}></div>
-                              <div>
-                                <p className={`text-sm ${!notif.isRead ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-                                  {notif.title}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
-                                  {notif.message}
-                                </p>
-                                <p className="text-[10px] text-gray-400 mt-1">
-                                  {new Date(notif.createdAt).toLocaleDateString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
-                          <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                          Tidak ada notifikasi baru
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2 border-t border-gray-200 dark:border-gray-700 text-center">
-                      <button className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                        Lihat Semua
-                      </button>
-                    </div>
-                  </div>
+                {i === 0 && (
+                  <Home className="inline w-3 h-3 mr-1 -mt-0.5 opacity-60" strokeWidth={2} />
                 )}
-              </div>
-
-              {/* Theme Toggle */}
-              <ThemeToggle />
-
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.fullName}</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{user?.role}</p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg font-medium transition-all text-sm"
+                {crumb.label}
+              </span>
+            ) : (
+              <Link
+                to={crumb.path}
+                className="text-[11px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition truncate"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
-          </div>
-        </header>
+                {i === 0 && (
+                  <Home className="inline w-3 h-3 mr-1 -mt-0.5 opacity-60" strokeWidth={2} />
+                )}
+                {crumb.label}
+              </Link>
+            )}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
-          {children}
-        </main>
+// ─── Layout ───────────────────────────────────────────────────────────────────
+export default function Layout({ children }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      const stored = localStorage.getItem('sidebar-collapsed');
+      return stored ? stored === 'true' : false;
+    } catch {
+      return false;
+    }
+  });
+
+  // Persist collapse state
+  useEffect(() => {
+    try {
+      localStorage.setItem('sidebar-collapsed', String(sidebarCollapsed));
+    } catch { /* ignore */ }
+  }, [sidebarCollapsed]);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => !prev);
+  }, []);
+
+  // ── Sidebar width sebagai CSS variable di :root ──
+  // Lebih clean dari inject <style> tag setiap render
+  const sidebarW = sidebarCollapsed ? '56px' : '220px';
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-width', sidebarW);
+    return () => {
+      // cleanup saat unmount (kalau layout pernah unmount)
+      document.documentElement.style.removeProperty('--sidebar-width');
+    };
+  }, [sidebarW]);
+
+  return (
+    <div className="min-h-screen bg-[var(--color-app-bg)] transition-colors" translate="no">
+      {/* Mobile bottom tab bar */}
+      <BottomNav />
+
+      {/* Desktop sidebar */}
+      <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+
+      {/* Slim top bar */}
+      <SlimTopBar
+        onToggleSidebar={toggleSidebar}
+        sidebarCollapsed={sidebarCollapsed}
+      />
+
+      {/* Ambient glow — desktop only */}
+      <div className="hidden lg:block pointer-events-none fixed top-0 left-0 right-0 bottom-0 overflow-hidden z-0 select-none">
+        <div
+          className="absolute rounded-full filter blur-[150px] opacity-[0.06] dark:opacity-[0.03] pulse-glow-1 transition-all duration-700 ease-in-out"
+          style={{
+            top: '-10%',
+            left: 'calc(var(--sidebar-width, 220px) + 10%)',
+            width: '450px',
+            height: '450px',
+            background: 'radial-gradient(circle, var(--color-primary) 0%, transparent 70%)'
+          }}
+        />
+        <div
+          className="absolute rounded-full filter blur-[120px] opacity-[0.04] dark:opacity-[0.02] pulse-glow-2 transition-all duration-700 ease-in-out"
+          style={{
+            bottom: '-10%',
+            right: '5%',
+            width: '350px',
+            height: '350px',
+            background: 'radial-gradient(circle, var(--color-secondary) 0%, transparent 70%)'
+          }}
+        />
       </div>
+
+      {/* Page Content */}
+      <main
+        data-layout-main
+        className="relative z-10 w-full px-4 sm:px-5 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6 transition-all duration-300"
+      >
+        <style>{`
+          @media (min-width: 1024px) {
+            main[data-layout-main] {
+              margin-left: var(--sidebar-width, 220px) !important;
+              width: calc(100% - var(--sidebar-width, 220px)) !important;
+            }
+          }
+        `}</style>
+        <div className="mx-auto w-full max-w-[1600px]">
+          <Breadcrumb />
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
