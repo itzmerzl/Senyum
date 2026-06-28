@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import {
   CreditCard, ShieldCheck, ArrowRight,
   Phone, School, Home, LogIn, CheckCircle, ShoppingBag,
+  MapPin, Clock, Mail, Calendar,
 } from 'lucide-react';
 import ThemeToggle from '../components/common/ThemeToggle';
 import BillingCheckSection from '../components/features/students/BillingCheckSection';
@@ -37,9 +38,9 @@ const PROGRAMS = [
     color: 'blue',
   },
   {
-    id: 'non-boarding',
+    id: 'reguler',
     icon: <Home className="w-5 h-5" />,
-    title: 'Program Non-Boarding',
+    title: 'Program Reguler',
     desc: 'Santri pulang ke rumah setelah jam sekolah selesai.',
     items: [
       'Seragam sekolah (putih-putih, batik, olahraga)',
@@ -175,13 +176,9 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0e1a] transition-colors duration-300 overflow-x-hidden">
 
-      {/* ── Dot-grid background (dark only) ── */}
+      {/* ── Grid-line background (dark only) ── */}
       <div
-        className="pointer-events-none fixed inset-0 z-0 hidden dark:block"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
-          backgroundSize: '28px 28px',
-        }}
+        className="pointer-events-none fixed inset-0 z-0 hidden dark:block bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:32px_32px]"
       />
 
       {/* ════════════════════════════════════════
@@ -460,9 +457,9 @@ export default function LandingPage() {
           FOOTER
       ════════════════════════════════════════ */}
       <footer id="contact" className="relative z-10 py-14 bg-white dark:bg-[#0a0e1a] border-t border-gray-100 dark:border-white/[0.05]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          <div className="grid sm:grid-cols-3 gap-10 mb-10">
+          <div className="grid sm:grid-cols-3 gap-8 md:gap-12 mb-10">
 
             {/* Brand */}
             <div className="sm:col-span-1">
@@ -474,35 +471,52 @@ export default function LandingPage() {
                 />
                 <span className="text-sm font-bold text-gray-900 dark:text-white">Koperasi Senyum</span>
               </div>
-              <p className="text-xs text-gray-400 dark:text-white/30 leading-relaxed max-w-[200px]">
+              <p className="text-xs text-gray-400 dark:text-white/30 leading-relaxed max-w-[240px]">
                 Melayani kebutuhan santri dengan sepenuh hati. Jujur, Amanah, dan Profesional.
               </p>
             </div>
 
-            {/* Kontak */}
+            {/* Kontak & Alamat */}
             <div>
               <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-white/30 mb-4">
-                Kontak
+                Kontak &amp; Alamat
               </h4>
-              <ul className="space-y-2.5">
-                <li className="flex items-center gap-2 text-xs text-gray-600 dark:text-white/50">
-                  <Phone size={13} className="text-blue-500 flex-shrink-0" />
-                  +62 822-4534-4633
+              <ul className="space-y-3">
+                <li className="flex items-center gap-2.5 text-xs text-gray-600 dark:text-white/50">
+                  <Phone size={14} className="text-blue-500 flex-shrink-0" />
+                  <span>0851-8307-9329</span>
                 </li>
-                <li className="text-xs text-gray-600 dark:text-white/50">Jln. Pemandian No. 88</li>
-                <li className="text-xs text-gray-600 dark:text-white/50">senyummu2024@gmail.com</li>
+                <li className="flex items-start gap-2.5 text-xs text-gray-600 dark:text-white/50 leading-relaxed">
+                  <MapPin size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                  <span>Jl. Pemandian, Krajan II No.88, RT.002/RW.003, Krajan II, Patemon, Kec. Tanggul, Kabupaten Jember, Jawa Timur 68155</span>
+                </li>
+                <li className="flex items-center gap-2.5 text-xs text-gray-600 dark:text-white/50">
+                  <Mail size={14} className="text-blue-500 flex-shrink-0" />
+                  <span>senyummu2024@gmail.com</span>
+                </li>
               </ul>
             </div>
 
-            {/* Jam */}
+            {/* Jam Operasional */}
             <div>
               <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-white/30 mb-4">
-                Jam Buka
+                Jam Operasional
               </h4>
-              <ul className="space-y-2.5 text-xs text-gray-600 dark:text-white/50">
-                <li>Senin – Kamis: 07.00 – 14.00</li>
-                <li>Jumat: 07.00 – 11.00</li>
-                <li>Sabtu: 07.00 – 13.00</li>
+              <ul className="space-y-3 text-xs text-gray-600 dark:text-white/50">
+                <li className="flex items-start gap-2.5 leading-relaxed">
+                  <Calendar size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block text-gray-800 dark:text-white/80">Jadwal Operasional</span>
+                    <span>Setiap Hari (Kecuali Kamis)</span>
+                  </div>
+                </li>
+                <li className="flex items-start gap-2.5 leading-relaxed">
+                  <Clock size={14} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block text-gray-800 dark:text-white/80">Waktu Pelayanan</span>
+                    <span>08.00 – 14.00 WIB</span>
+                  </div>
+                </li>
               </ul>
             </div>
           </div>

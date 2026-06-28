@@ -191,7 +191,7 @@ export const getAllStudents = async (params = {}) => {
  */
 export const checkPublicBilling = async (data) => {
   const { registrationNumber, pin } = data;
-  
+
   const { data: student, error } = await supabase
     .from(TABLE_NAME)
     .select('*')
@@ -329,7 +329,7 @@ export const createStudent = async (studentData) => {
  */
 export const bulkCreateStudents = async (studentsList) => {
   const year = new Date().getFullYear();
-  
+
   const { count, error: countErr } = await supabase
     .from(TABLE_NAME)
     .select('*', { count: 'exact', head: true })

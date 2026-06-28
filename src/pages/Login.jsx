@@ -50,29 +50,24 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white dark:bg-[#12100a] transition-colors duration-300">
+    <div className="min-h-screen flex bg-white dark:bg-[#0a0e1a] transition-colors duration-300">
 
       {/* ════════════════════════════════════════
           PANEL KIRI — Branding (desktop only)
       ════════════════════════════════════════ */}
       <div
         className="hidden lg:flex lg:w-[44%] relative overflow-hidden
-                   bg-gradient-to-br from-blue-600 via-blue-700 to-amber-500"
+                   bg-gradient-to-br from-[#0c0f19] via-[#111827] to-[#1e293b]
+                   border-r border-gray-100 dark:border-white/[0.06]"
       >
-        {/* Pattern dekoratif: dot-grid */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.15]"
-          style={{
-            backgroundImage: 'radial-gradient(circle, white 1.5px, transparent 1.5px)',
-            backgroundSize: '26px 26px',
-          }}
-        />
+        {/* Pattern dekoratif: modern grid-lines */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
 
         {/* Glow blobs dekoratif */}
         <div className="pointer-events-none absolute -top-24 -left-24 w-[420px] h-[420px]
-                        bg-white/10 rounded-full blur-3xl" />
+                        bg-blue-500/10 rounded-full blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4
-                        w-[380px] h-[380px] bg-amber-300/25 rounded-full blur-3xl" />
+                        w-[380px] h-[380px] bg-indigo-500/10 rounded-full blur-3xl" />
 
         <div
           className={`relative z-10 flex flex-col justify-between p-12 w-full
@@ -87,36 +82,71 @@ export default function Login() {
             <span className="text-white font-bold text-lg tracking-tight">Koperasi Senyum</span>
           </div>
 
-          {/* Tagline */}
-          <div className="max-w-sm">
+          {/* Tagline & Showcase */}
+          <div className="max-w-sm my-auto w-full">
             <h1 className="text-3xl font-black text-white leading-tight mb-4">
               Portal Pengelolaan Koperasi Sekolah
             </h1>
-            <p className="text-white/70 text-sm leading-relaxed mb-8">
+            <p className="text-white/55 text-sm leading-relaxed mb-8">
               Sistem terpadu untuk staff dan pengurus dalam mengelola tagihan, perlengkapan,
               dan administrasi santri MBS Tanggul.
             </p>
 
-            {/* Highlights */}
-            <div className="space-y-4">
-              {HIGHLIGHTS.map(({ icon: Icon, text }, index) => (
-                <div
-                  key={text}
-                  className={`flex items-center gap-3 transition-all duration-500
-                    ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}
-                  style={{ transitionDelay: mounted ? `${300 + index * 120}ms` : '0ms' }}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-white/85 text-sm font-medium">{text}</span>
+            {/* Mockup UI Showcase */}
+            <div className="mt-12 relative">
+              {/* Card 1: Balance Summary */}
+              <div
+                className={`p-5 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.07] shadow-2xl transition-all duration-1000 delay-[300ms]
+                  ${mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Laporan Keuangan</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                    +14.2%
+                  </span>
                 </div>
-              ))}
+                <div className="text-2xl font-bold text-white tracking-tight mb-4">Rp 24.580.000</div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-white/60">Target Cicilan Bulan Ini</span>
+                    <span className="text-white font-medium">82%</span>
+                  </div>
+                  <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-blue-500 h-full rounded-full transition-all duration-1000 delay-700" style={{ width: mounted ? '82%' : '0%' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Floating Activity/Status */}
+              <div
+                className={`absolute -bottom-8 -right-4 p-3.5 rounded-xl bg-[#1e293b]/95 backdrop-blur-md border border-white/[0.08] shadow-2xl flex items-center gap-3 transition-all duration-1000 delay-[500ms] hover:scale-102 duration-300
+                  ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                  <ShoppingBag className="w-4 h-4 text-amber-400" />
+                </div>
+                <div>
+                  <div className="text-white text-xs font-bold">Stok Menipis</div>
+                  <div className="text-white/55 text-[10px]">Buku Paket Kelas VIII • 3 Pcs</div>
+                </div>
+              </div>
+
+              {/* Card 3: Floating Transaction status */}
+              <div
+                className={`absolute -top-6 -left-6 p-2.5 rounded-xl bg-white/[0.05] backdrop-blur-md border border-white/[0.08] shadow-lg flex items-center gap-2 transition-all duration-1000 delay-[700ms] hover:scale-102 duration-300
+                  ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}
+              >
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                </div>
+                <div className="text-white text-xs font-semibold whitespace-nowrap">Tagihan Terbayar (284 Santri)</div>
+              </div>
             </div>
           </div>
 
           {/* Footer kecil */}
-          <p className="text-white/50 text-xs">
+          <p className="text-white/40 text-xs">
             © 2025 Koperasi Senyum. Powered by TechSchool.
           </p>
         </div>
@@ -127,22 +157,16 @@ export default function Login() {
       ════════════════════════════════════════ */}
       <div className="flex-1 flex items-center justify-center relative overflow-hidden p-4">
 
-        {/* Dot-grid background (dark only), konsisten dengan LandingPage — hanya tampil saat panel kiri disembunyikan (mobile) atau selalu di kanan */}
-        <div
-          className="pointer-events-none absolute inset-0 z-0 hidden dark:block"
-          style={{
-            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
-            backgroundSize: '28px 28px',
-          }}
-        />
+        {/* Subtle grid pattern (dark only) */}
+        <div className="pointer-events-none absolute inset-0 z-0 hidden dark:block bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:32px_32px]" />
 
-        {/* Glow blobs — hanya relevan di mobile, lebih halus karena panel kiri sudah ada di desktop */}
+        {/* Glow blobs — lebih halus dan tidak terlalu berwarna */}
         <div className="absolute top-0 right-0 -mr-40 -mt-40 w-[800px] h-[800px]
-                        bg-blue-100/60 dark:bg-blue-500/8 rounded-full blur-3xl pointer-events-none
-                        lg:opacity-50" />
+                        bg-blue-50/50 dark:bg-blue-500/3 rounded-full blur-3xl pointer-events-none
+                        lg:opacity-30" />
         <div className="absolute bottom-0 left-0 -ml-40 -mb-40 w-[600px] h-[600px]
-                        bg-amber-100/50 dark:bg-amber-400/6 rounded-full blur-3xl pointer-events-none
-                        lg:opacity-50" />
+                        bg-slate-50/50 dark:bg-indigo-500/2 rounded-full blur-3xl pointer-events-none
+                        lg:opacity-30" />
 
         <div className="absolute top-4 right-4 z-20">
           <ThemeToggle />

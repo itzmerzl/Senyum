@@ -7,6 +7,7 @@ import {
   Globe, Clock,
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import Skeleton from './Skeleton';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RouteLogger — tiny child component that tracks React Router navigations.
@@ -86,6 +87,18 @@ export function SystemDebugger() {
   const [panelSide, setPanelSide] = useState(           // Pinnable panel side
     () => localStorage.getItem('senyum-devtools-side') || 'right'
   );
+  const [isTabLoading, setIsTabLoading] = useState(false);
+
+  // Trigger loading skeleton on tab changes or open
+  useEffect(() => {
+    if (isOpen) {
+      setIsTabLoading(true);
+      const timer = setTimeout(() => {
+        setIsTabLoading(false);
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, isOpen]);
 
   // ── Dev-only guard ─────────────────────────────────────────────────────────
   const isDev =
@@ -846,73 +859,97 @@ ${recentNet.length > 0
 
             {/* ═══ NETWORK TAB ═════════════════════════════════════════════ */}
             {activeTab === 'network' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-semibold">
-                    Intercepted Fetch Requests ({networkLogs.length})
-                  </span>
-                  {networkLogs.length > 0 && (
-                    <button
-                      onClick={() => setNetworkLogs([])}
-                      className="flex items-center gap-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      <span className="text-[9px]">Clear</span>
-                    </button>
-                  )}
+              isTabLoading ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="w-36 h-4 rounded" />
+                    <Skeleton className="w-10 h-3 rounded" />
+                  </div>
+                  <div className="bg-gray-50/50 dark:bg-gray-950/90 border border-gray-200/80 dark:border-white/5 rounded-xl p-2.5 space-y-2.5 overflow-hidden">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="p-3 rounded-lg border border-gray-200/60 dark:border-white/5 bg-white/50 dark:bg-gray-900/30 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-1">
+                          <Skeleton className="w-10 h-5 rounded shrink-0" />
+                          <Skeleton className="w-8 h-4 rounded shrink-0" />
+                          <Skeleton className="w-1/2 h-3.5 rounded" />
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Skeleton className="w-12 h-3 rounded" />
+                          <Skeleton className="w-16 h-3 rounded" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-
-                <div className="bg-gray-50 dark:bg-gray-950/90 border border-gray-200/80 dark:border-white/5 rounded-xl overflow-y-auto max-h-[calc(100vh-220px)] space-y-1.5 p-2 custom-scrollbar">
-                  {networkLogs.length === 0 ? (
-                    <div className="text-gray-400 dark:text-gray-500 text-center py-10 flex flex-col items-center gap-2">
-                      <Globe className="w-8 h-8 opacity-30" />
-                      <span className="text-[10px]">
-                        Belum ada request. Buat fetch API call untuk memulai.
-                      </span>
-                    </div>
-                  ) : (
-                    networkLogs.map((req) => (
-                      <div
-                        key={req.id}
-                        className={`p-2.5 rounded-lg border flex items-center gap-2 text-[10px] font-mono ${req.ok
-                            ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30'
-                            : 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/30'
-                          }`}
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-semibold">
+                      Intercepted Fetch Requests ({networkLogs.length})
+                    </span>
+                    {networkLogs.length > 0 && (
+                      <button
+                        onClick={() => setNetworkLogs([])}
+                        className="flex items-center gap-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                       >
-                        <span
-                          className={`font-bold text-[9px] px-1.5 py-0.5 rounded shrink-0 ${req.method === 'GET'
-                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                              : req.method === 'POST'
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                : req.method === 'DELETE'
-                                  ? 'bg-red-500/10 text-red-600 dark:text-red-400'
-                                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                            }`}
-                        >
-                          {req.method}
-                        </span>
-                        <span
-                          className={`font-bold shrink-0 ${req.ok
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : 'text-red-600 dark:text-red-400'
-                            }`}
-                        >
-                          {req.status}
-                        </span>
-                        <span className="truncate text-gray-600 dark:text-gray-300 flex-1">
-                          {req.url}
-                        </span>
-                        <span className="shrink-0 text-gray-400 dark:text-gray-500">
-                          {req.ms}ms
-                        </span>
-                        <span className="shrink-0 text-gray-300 dark:text-gray-600">
-                          {req.timestamp}
+                        <Trash2 className="w-3 h-3" />
+                        <span className="text-[9px]">Clear</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-950/90 border border-gray-200/80 dark:border-white/5 rounded-xl overflow-y-auto max-h-[calc(100vh-220px)] space-y-1.5 p-2 custom-scrollbar">
+                    {networkLogs.length === 0 ? (
+                      <div className="text-gray-400 dark:text-gray-500 text-center py-10 flex flex-col items-center gap-2">
+                        <Globe className="w-8 h-8 opacity-30" />
+                        <span className="text-[10px]">
+                          Belum ada request. Buat fetch API call untuk memulai.
                         </span>
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      networkLogs.map((req) => (
+                        <div
+                          key={req.id}
+                          className={`p-2.5 rounded-lg border flex items-center gap-2 text-[10px] font-mono ${req.ok
+                              ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30'
+                              : 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/30'
+                            }`}
+                        >
+                          <span
+                            className={`font-bold text-[9px] px-1.5 py-0.5 rounded shrink-0 ${req.method === 'GET'
+                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                : req.method === 'POST'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                  : req.method === 'DELETE'
+                                    ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              }`}
+                          >
+                            {req.method}
+                          </span>
+                          <span
+                            className={`font-bold shrink-0 ${req.ok
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-red-600 dark:text-red-400'
+                              }`}
+                          >
+                            {req.status}
+                          </span>
+                          <span className="truncate text-gray-600 dark:text-gray-300 flex-1">
+                            {req.url}
+                          </span>
+                          <span className="shrink-0 text-gray-400 dark:text-gray-500">
+                            {req.ms}ms
+                          </span>
+                          <span className="shrink-0 text-gray-300 dark:text-gray-600">
+                            {req.timestamp}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
+              )
             )}
 
             {/* ═══ ACTIONS TAB ════════════════════════════════════════════ */}
@@ -1016,131 +1053,164 @@ ${recentNet.length > 0
 
             {/* ═══ EVENT LOGS TAB ═════════════════════════════════════════ */}
             {activeTab === 'logs' && (
-              <div className="flex flex-col gap-3" style={{ height: 'calc(100vh - 220px)' }}>
-                {/* Search */}
-                <div className="relative shrink-0">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-gray-500">
-                    <Search className="w-3.5 h-3.5" />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Cari log berdasarkan teks..."
-                    value={logSearch}
-                    onChange={(e) => setLogSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-950/80 border border-gray-300 dark:border-white/5 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-1 focus:ring-blue-500/50 focus:border-transparent transition-all outline-none"
-                  />
-                </div>
+              isTabLoading ? (
+                <div className="space-y-3" style={{ height: 'calc(100vh - 220px)' }}>
+                  {/* Search skeleton */}
+                  <Skeleton className="w-full h-9 rounded-lg" />
+                  
+                  {/* Filter pills skeleton */}
+                  <div className="flex gap-1 p-1 bg-gray-50 dark:bg-gray-950/60 rounded-lg border border-gray-200/80 dark:border-white/5 shrink-0">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton key={i} className="flex-1 h-7 rounded-md" />
+                    ))}
+                  </div>
 
-                {/* Filter pills */}
-                <div className="flex gap-1 p-1 bg-gray-50 dark:bg-gray-950/60 rounded-lg border border-gray-200/80 dark:border-white/5 shrink-0">
-                  {[
-                    { id: 'all', label: 'Semua' },
-                    { id: 'error', label: 'Error' },
-                    { id: 'warn', label: 'Warning' },
-                    { id: 'info', label: 'Info' },
-                    { id: 'success', label: 'Success' },
-                  ].map((pill) => (
-                    <button
-                      key={pill.id}
-                      onClick={() => setLogFilter(pill.id)}
-                      className={`flex-1 py-1.5 rounded-md font-bold text-[9px] uppercase transition-all ${logFilter === pill.id
-                          ? 'bg-blue-100/60 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 shadow-sm'
-                          : 'bg-transparent text-gray-500 dark:text-gray-400 border border-transparent hover:text-gray-800 dark:hover:text-gray-200'
-                        }`}
-                    >
-                      {pill.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Log list */}
-                <div className="flex-1 bg-gray-50 dark:bg-gray-950/90 border border-gray-200/80 dark:border-white/5 rounded-xl overflow-y-auto p-2.5 space-y-2 custom-scrollbar">
-                  {filteredLogs.length === 0 ? (
-                    <div className="text-gray-400 dark:text-gray-500 text-center py-10 flex flex-col items-center justify-center gap-2">
-                      <Shield className="w-8 h-8 text-gray-300 dark:text-gray-600 opacity-50" />
-                      <span className="text-[10px]">
-                        Tidak ada log yang sesuai filter.
-                      </span>
-                    </div>
-                  ) : (
-                    // FIX: use stable log.id as key, never array index
-                    filteredLogs.map((log) => (
-                      <div
-                        key={log.id}
-                        className={`group p-2.5 rounded-lg border transition-all duration-200 ${log.type === 'error'
-                            ? 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 hover:border-red-300 dark:hover:border-red-900/50'
-                            : log.type === 'warn'
-                              ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30 text-amber-700 dark:text-amber-300 hover:border-amber-300 dark:hover:border-amber-900/50'
-                              : log.type === 'success'
-                                ? 'bg-emerald-50/50 dark:bg-emerald-950/25 border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-900/50'
-                                : 'bg-white dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'
-                          }`}
-                      >
-                        <div className="flex justify-between items-center border-b border-gray-200/40 dark:border-white/5 pb-1.5 mb-1.5">
-                          <span className="font-extrabold uppercase tracking-wider text-[9px] flex items-center gap-1">
-                            {log.type === 'error' && (
-                              <AlertTriangle className="w-3 h-3 text-red-500 dark:text-red-400 animate-pulse" />
-                            )}
-                            {log.type === 'warn' && (
-                              <AlertTriangle className="w-3 h-3 text-amber-500 dark:text-amber-400" />
-                            )}
-                            {log.type === 'success' && (
-                              <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            )}
-                            {log.type === 'info' && (
-                              <Route className="w-3 h-3 text-blue-500 dark:text-blue-400" />
-                            )}
-                            {log.source}
-                          </span>
+                  {/* Log list skeleton */}
+                  <div className="flex-1 bg-gray-50 dark:bg-gray-950/90 border border-gray-200/80 dark:border-white/5 rounded-xl p-2.5 space-y-2.5 overflow-hidden">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="p-3 rounded-lg border border-gray-200/60 dark:border-white/5 bg-white/50 dark:bg-gray-900/30 space-y-2.5">
+                        <div className="flex justify-between items-center pb-2 border-b border-gray-100/50 dark:border-white/5">
                           <div className="flex items-center gap-2">
-                            <span className="text-[9px] opacity-60">{log.timestamp}</span>
-                            {/* FIX: use log.id not idx for copy key */}
-                            <button
-                              onClick={() =>
-                                handleCopyToClipboard(log.message, `log-${log.id}`)
-                              }
-                              className="opacity-0 group-hover:opacity-100 hover:text-gray-900 dark:hover:text-white p-0.5 rounded transition-all text-gray-400 dark:text-gray-500"
-                              title="Salin Log"
-                            >
-                              {copiedKey === `log-${log.id}` ? (
-                                <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
-                              )}
-                            </button>
+                            <Skeleton className="w-4 h-4 rounded-full" />
+                            <Skeleton className="w-24 h-3.5 rounded" />
                           </div>
+                          <Skeleton className="w-16 h-3 rounded" />
                         </div>
-                        <div className="whitespace-pre-wrap select-all font-mono break-all leading-normal text-[10px]">
-                          {log.message}
+                        <div className="space-y-1.5">
+                          <Skeleton className="w-full h-3 rounded" />
+                          <Skeleton className="w-[85%] h-3 rounded" />
                         </div>
                       </div>
-                    ))
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3" style={{ height: 'calc(100vh - 220px)' }}>
+                  {/* Search */}
+                  <div className="relative shrink-0">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-gray-500">
+                      <Search className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Cari log berdasarkan teks..."
+                      value={logSearch}
+                      onChange={(e) => setLogSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-950/80 border border-gray-300 dark:border-white/5 rounded-lg text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-1 focus:ring-blue-500/50 focus:border-transparent transition-all outline-none"
+                    />
+                  </div>
+
+                  {/* Filter pills */}
+                  <div className="flex gap-1 p-1 bg-gray-50 dark:bg-gray-950/60 rounded-lg border border-gray-200/80 dark:border-white/5 shrink-0">
+                    {[
+                      { id: 'all', label: 'Semua' },
+                      { id: 'error', label: 'Error' },
+                      { id: 'warn', label: 'Warning' },
+                      { id: 'info', label: 'Info' },
+                      { id: 'success', label: 'Success' },
+                    ].map((pill) => (
+                      <button
+                        key={pill.id}
+                        onClick={() => setLogFilter(pill.id)}
+                        className={`flex-1 py-1.5 rounded-md font-bold text-[9px] uppercase transition-all ${logFilter === pill.id
+                            ? 'bg-blue-100/60 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 shadow-sm'
+                            : 'bg-transparent text-gray-500 dark:text-gray-400 border border-transparent hover:text-gray-800 dark:hover:text-gray-200'
+                          }`}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Log list */}
+                  <div className="flex-1 bg-gray-50 dark:bg-gray-950/90 border border-gray-200/80 dark:border-white/5 rounded-xl overflow-y-auto p-2.5 space-y-2 custom-scrollbar">
+                    {filteredLogs.length === 0 ? (
+                      <div className="text-gray-400 dark:text-gray-500 text-center py-10 flex flex-col items-center justify-center gap-2">
+                        <Shield className="w-8 h-8 text-gray-300 dark:text-gray-600 opacity-50" />
+                        <span className="text-[10px]">
+                          Tidak ada log yang sesuai filter.
+                        </span>
+                      </div>
+                    ) : (
+                      // FIX: use stable log.id as key, never array index
+                      filteredLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className={`group p-2.5 rounded-lg border transition-all duration-200 ${log.type === 'error'
+                              ? 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 hover:border-red-300 dark:hover:border-red-900/50'
+                              : log.type === 'warn'
+                                ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30 text-amber-700 dark:text-amber-300 hover:border-amber-300 dark:hover:border-amber-900/50'
+                                : log.type === 'success'
+                                  ? 'bg-emerald-50/50 dark:bg-emerald-950/25 border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-900/50'
+                                  : 'bg-white dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'
+                            }`}
+                        >
+                          <div className="flex justify-between items-center border-b border-gray-200/40 dark:border-white/5 pb-1.5 mb-1.5">
+                            <span className="font-extrabold uppercase tracking-wider text-[9px] flex items-center gap-1">
+                              {log.type === 'error' && (
+                                <AlertTriangle className="w-3 h-3 text-red-500 dark:text-red-400 animate-pulse" />
+                              )}
+                              {log.type === 'warn' && (
+                                <AlertTriangle className="w-3 h-3 text-amber-500 dark:text-amber-400" />
+                              )}
+                              {log.type === 'success' && (
+                                <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                              )}
+                              {log.type === 'info' && (
+                                <Route className="w-3 h-3 text-blue-500 dark:text-blue-400" />
+                              )}
+                              {log.source}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] opacity-60">{log.timestamp}</span>
+                              {/* FIX: use log.id not idx for copy key */}
+                              <button
+                                onClick={() =>
+                                  handleCopyToClipboard(log.message, `log-${log.id}`)
+                                }
+                                className="opacity-0 group-hover:opacity-100 hover:text-gray-900 dark:hover:text-white p-0.5 rounded transition-all text-gray-400 dark:text-gray-500"
+                                title="Salin Log"
+                              >
+                                {copiedKey === `log-${log.id}` ? (
+                                  <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="whitespace-pre-wrap select-all font-mono break-all leading-normal text-[10px]">
+                            {log.message}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Footer actions */}
+                  {logs.length > 0 && (
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => {
+                          setLogs([]);
+                          try { sessionStorage.removeItem('senyum-devtools-logs'); } catch { }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg border border-dashed border-gray-200 dark:border-white/5 transition-all text-[10px] font-semibold"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Kosongkan Log
+                      </button>
+                      <button
+                        onClick={handleExportLogs}
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg border border-dashed border-gray-200 dark:border-white/5 transition-all text-[10px] font-semibold"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Export
+                      </button>
+                    </div>
                   )}
                 </div>
-
-                {/* Footer actions */}
-                {logs.length > 0 && (
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => {
-                        setLogs([]);
-                        try { sessionStorage.removeItem('senyum-devtools-logs'); } catch { }
-                      }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg border border-dashed border-gray-200 dark:border-white/5 transition-all text-[10px] font-semibold"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Kosongkan Log
-                    </button>
-                    <button
-                      onClick={handleExportLogs}
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg border border-dashed border-gray-200 dark:border-white/5 transition-all text-[10px] font-semibold"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Export
-                    </button>
-                  </div>
-                )}
-              </div>
+              )
             )}
 
             {/* ═══ SYSTEM INFO TAB ════════════════════════════════════════ */}

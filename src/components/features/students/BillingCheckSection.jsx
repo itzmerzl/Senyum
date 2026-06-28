@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { checkPublicBilling } from '../../../services/studentService';
-import { Loader2, Search, AlertCircle, CheckCircle, CreditCard, Calendar } from 'lucide-react';
+import { Loader2, Search, AlertCircle, CheckCircle, CreditCard, Calendar, Sparkles, Info } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 
@@ -12,6 +12,15 @@ export default function BillingCheckSection() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [result, setResult] = useState(null);
+    const [cardHighlight, setCardHighlight] = useState(null);
+
+    const handleAutoFillDemo = () => {
+        setFormData({
+            registrationNumber: 'REG-2026-0001',
+            pin: '123456'
+        });
+        toast.success('Data demo dimasukkan! Klik "Cek Data"');
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -49,7 +58,7 @@ export default function BillingCheckSection() {
                        bg-blue-50/60 dark:bg-transparent
                        border-y border-blue-100 dark:border-white/[0.05]"
         >
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-10">
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-3">
                         Layanan Wali Murid
@@ -62,78 +71,201 @@ export default function BillingCheckSection() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl p-8
+                <div className="rounded-2xl p-6 sm:p-8
                                 border border-gray-100 dark:border-white/[0.07]
                                 bg-white dark:bg-white/[0.03]
                                 shadow-lg shadow-blue-500/5 dark:shadow-none">
-                    {/* Form Section */}
-                    <form onSubmit={handleSubmit} className="grid md:grid-cols-3 gap-4 mb-6">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="No. Registrasi (Contoh: REG-2024-0001)"
-                                value={formData.registrationNumber}
-                                onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                                className="w-full pl-4 pr-4 py-3 rounded-xl
-                                           border border-gray-200 dark:border-white/[0.1]
-                                           bg-gray-50 dark:bg-white/[0.04]
-                                           text-gray-900 dark:text-white
-                                           placeholder:text-gray-400 dark:placeholder:text-white/30
-                                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                                           outline-none transition-all"
-                            />
+                    
+                    <div className={`grid lg:grid-cols-12 gap-8 items-center ${result ? '' : 'lg:divide-x lg:divide-gray-100 lg:dark:divide-white/[0.06]'}`}>
+                        
+                        {/* Form & Results Column */}
+                        <div className={`${result ? 'lg:col-span-12' : 'lg:col-span-7 pr-0 lg:pr-8'}`}>
+                            {/* Form Section */}
+                            <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-white/40">
+                                        No. Registrasi
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Contoh: REG-2026-0001"
+                                            value={formData.registrationNumber}
+                                            onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                                            onFocus={() => setCardHighlight('reg')}
+                                            onBlur={() => setCardHighlight(null)}
+                                            onMouseEnter={() => setCardHighlight('reg')}
+                                            onMouseLeave={() => setCardHighlight(null)}
+                                            className="w-full pl-4 pr-4 py-3 rounded-xl
+                                                       border border-gray-200 dark:border-white/[0.1]
+                                                       bg-gray-50 dark:bg-white/[0.04]
+                                                       text-gray-900 dark:text-white
+                                                       placeholder:text-gray-400 dark:placeholder:text-white/30
+                                                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                                                       outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-white/40">
+                                        PIN Siswa
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="password"
+                                            maxLength={6}
+                                            placeholder="6 Digit PIN"
+                                            value={formData.pin}
+                                            onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                                            onFocus={() => setCardHighlight('pin')}
+                                            onBlur={() => setCardHighlight(null)}
+                                            onMouseEnter={() => setCardHighlight('pin')}
+                                            onMouseLeave={() => setCardHighlight(null)}
+                                            className="w-full pl-4 pr-4 py-3 rounded-xl
+                                                       border border-gray-200 dark:border-white/[0.1]
+                                                       bg-gray-50 dark:bg-white/[0.04]
+                                                       text-gray-900 dark:text-white
+                                                       placeholder:text-gray-400 dark:placeholder:text-white/30
+                                                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                                                       outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full px-8 py-3.5 rounded-xl font-bold text-white
+                                               bg-blue-600 hover:bg-blue-700
+                                               shadow-lg shadow-blue-500/25 dark:shadow-blue-500/10
+                                               hover:-translate-y-px
+                                               disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0
+                                               transition-all duration-200
+                                               flex items-center justify-center gap-2"
+                                >
+                                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                                    {loading ? 'Mengecek...' : 'Cek Data'}
+                                </button>
+                            </form>
+
+                            {/* Error Display */}
+                            {error && (
+                                <div className="mb-6 p-4 rounded-xl flex items-center gap-3
+                                                bg-red-50 dark:bg-red-500/10
+                                                text-red-600 dark:text-red-400
+                                                animate-in fade-in slide-in-from-top-2">
+                                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                    <p className="font-medium text-sm">{error}</p>
+                                </div>
+                            )}
+
+                            {/* Footnote */}
+                            {!result && (
+                                <p className="text-[11px] text-gray-400 dark:text-white/30 flex items-start gap-1.5 leading-relaxed">
+                                    <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                                    <span>Gunakan nomor registrasi dan PIN yang tertera pada kartu pelajar santri Anda. Klik pada kartu di samping untuk mencoba data demo secara otomatis.</span>
+                                </p>
+                            )}
                         </div>
 
-                        <div className="relative">
-                            <input
-                                type="password"
-                                maxLength={6}
-                                placeholder="6 Digit PIN Siswa"
-                                value={formData.pin}
-                                onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
-                                className="w-full pl-4 pr-4 py-3 rounded-xl
-                                           border border-gray-200 dark:border-white/[0.1]
-                                           bg-gray-50 dark:bg-white/[0.04]
-                                           text-gray-900 dark:text-white
-                                           placeholder:text-gray-400 dark:placeholder:text-white/30
-                                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                                           outline-none transition-all"
-                            />
-                        </div>
+                        {/* Card Mockup Column */}
+                        {!result && (
+                            <div className="lg:col-span-5 flex flex-col items-center justify-center pl-0 lg:pl-8 py-4">
+                                <p className="text-xs font-bold text-gray-400 dark:text-white/30 uppercase tracking-widest mb-4 flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                    Panduan Struk Koperasi
+                                </p>
+                                
+                                {/* Thermal Receipt Graphic */}
+                                <div 
+                                    onClick={handleAutoFillDemo}
+                                    title="Klik untuk mencoba data demo"
+                                    className="relative w-full max-w-[270px] bg-[#fafaf9] dark:bg-[#141a27] text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-white/[0.08] shadow-md p-5 font-mono text-xs transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-pointer flex flex-col items-center"
+                                    style={{
+                                        boxShadow: '0 8px 24px -8px rgba(0,0,0,0.08)',
+                                    }}
+                                >
+                                    {/* Receipt Zig-zag top effect via CSS dashes */}
+                                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent bg-[size:8px_4px] bg-repeat-x" />
+                                    
+                                    {/* Header */}
+                                    <div className="text-center w-full space-y-1 mb-3">
+                                        <p className="font-bold text-sm tracking-wider text-gray-905 dark:text-white">KOPERASI SENYUM</p>
+                                        <p className="text-[9px] text-gray-400 dark:text-white/40">MBS TANGGUL JEMBER</p>
+                                        <p className="text-[9px] text-gray-400 dark:text-white/40">TELP: 0851-8307-9329</p>
+                                        <p className="border-t border-dashed border-gray-300 dark:border-white/10 my-2"></p>
+                                        <p className="text-[10px] font-bold text-gray-800 dark:text-slate-300">BUKTI REGISTRASI AKSES</p>
+                                        <p className="border-b border-dashed border-gray-300 dark:border-white/10 my-2"></p>
+                                    </div>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full px-8 py-3 rounded-xl font-bold text-white
-                                       bg-blue-600 hover:bg-blue-700
-                                       shadow-lg shadow-blue-500/25 dark:shadow-blue-500/10
-                                       hover:-translate-y-px
-                                       disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0
-                                       transition-all duration-200
-                                       flex items-center justify-center gap-2"
-                        >
-                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                            {loading ? 'Mengecek...' : 'Cek Data'}
-                        </button>
-                    </form>
+                                    {/* Body details */}
+                                    <div className="w-full space-y-2 text-[10px]">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400 dark:text-white/30">TGL:</span>
+                                            <span>28-06-2026</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400 dark:text-white/30">NAMA:</span>
+                                            <span className="font-bold text-gray-950 dark:text-white truncate max-w-[150px]">AHMAD RAIHAN</span>
+                                        </div>
+                                        
+                                        <p className="border-t border-dotted border-gray-200 dark:border-white/5 my-2"></p>
 
-                    {/* Error Display */}
-                    {error && (
-                        <div className="mb-6 p-4 rounded-xl flex items-center gap-3
-                                        bg-red-50 dark:bg-red-500/10
-                                        text-red-600 dark:text-red-400
-                                        animate-in fade-in slide-in-from-top-2">
-                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                            <p className="font-medium text-sm">{error}</p>
-                        </div>
-                    )}
-
-                    {/* Footnote */}
-                    {!result && (
-                        <p className="text-center text-sm text-gray-500 dark:text-white/40">
-                            *Gunakan No. Registrasi dan PIN yang tertera pada Kartu Pelajar untuk mengecek tagihan.
-                        </p>
-                    )}
+                                        {/* Registration Number Field */}
+                                        <div 
+                                            className={`p-1.5 rounded transition-all duration-200 border text-center ${
+                                                cardHighlight === 'reg' 
+                                                    ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-400 scale-[1.02]' 
+                                                    : 'border-transparent'
+                                            }`}
+                                        >
+                                            <p className="text-[8px] text-gray-400 dark:text-white/30 tracking-wider mb-0.5 font-sans">NO. REGISTRASI (KLIK)</p>
+                                            <p className="font-bold text-blue-600 dark:text-blue-400 text-xs">REG-2026-0001</p>
+                                        </div>
+                                        
+                                        {/* PIN Field */}
+                                        <div 
+                                            className={`p-1.5 rounded transition-all duration-200 border text-center ${
+                                                cardHighlight === 'pin' 
+                                                    ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-400 scale-[1.02]' 
+                                                    : 'border-transparent'
+                                            }`}
+                                        >
+                                            <p className="text-[8px] text-gray-400 dark:text-white/30 tracking-wider mb-0.5 font-sans">PIN AKSES (KLIK)</p>
+                                            <p className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">123456</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Barcode & Footer Strip */}
+                                    <div className="w-full text-center mt-4 space-y-2">
+                                        <p className="border-t border-dashed border-gray-300 dark:border-white/10 my-2"></p>
+                                        
+                                        {/* Barcode */}
+                                        <div className="flex justify-center items-center gap-0.5 opacity-60 py-1">
+                                            <div className="w-0.5 h-6 bg-black dark:bg-white"></div>
+                                            <div className="w-1.5 h-6 bg-black dark:bg-white"></div>
+                                            <div className="w-px h-6 bg-black dark:bg-white"></div>
+                                            <div className="w-0.5 h-6 bg-black dark:bg-white"></div>
+                                            <div className="w-1.5 h-6 bg-black dark:bg-white"></div>
+                                            <div className="w-0.5 h-6 bg-black dark:bg-white"></div>
+                                            <div className="w-1 h-6 bg-black dark:bg-white"></div>
+                                            <div className="w-px h-6 bg-black dark:bg-white"></div>
+                                            <div className="w-1.5 h-6 bg-black dark:bg-white"></div>
+                                        </div>
+                                        
+                                        <p className="text-[8px] text-gray-400 dark:text-white/30 leading-normal font-sans">
+                                            *Simpan bukti cetak ini untuk mengecek status tagihan secara online.
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <p className="text-[10px] text-gray-400 dark:text-white/30 text-center mt-3 max-w-[240px]">
+                                    💡 Klik struk untuk memasukkan data uji coba otomatis.
+                                </p>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Result Display */}
                     {result && (

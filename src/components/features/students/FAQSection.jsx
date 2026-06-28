@@ -14,15 +14,15 @@ const FAQS = [
     },
     {
         question: 'Apakah bisa membayar tagihan secara cicilan?',
-        answer: 'Bisa. Koperasi menyediakan program cicilan untuk perlengkapan seragam dan kebutuhan awal tahun ajaran, baik untuk program boarding maupun non-boarding. Detail dapat ditanyakan langsung ke koperasi.',
+        answer: 'Bisa. Koperasi menyediakan program cicilan untuk perlengkapan seragam dan kebutuhan awal tahun ajaran, baik untuk program boarding maupun reguler. Detail dapat ditanyakan langsung ke koperasi.',
     },
     {
-        question: 'Apa perbedaan kebutuhan perlengkapan Boarding dan Non-Boarding?',
-        answer: 'Santri program Boarding memerlukan perlengkapan tambahan untuk tinggal di asrama seperti kasur, bantal, selimut, dan perlengkapan kamar, selain seragam dan alat tulis. Santri Non-Boarding hanya memerlukan perlengkapan sekolah harian.',
+        question: 'Apa perbedaan kebutuhan perlengkapan Boarding dan Reguler?',
+        answer: 'Santri program Boarding memerlukan perlengkapan tambahan untuk tinggal di asrama seperti kasur, bantal, selimut, dan perlengkapan kamar, selain seragam dan alat tulis. Santri Reguler hanya memerlukan perlengkapan sekolah harian.',
     },
     {
         question: 'Kapan jam operasional koperasi?',
-        answer: 'Koperasi buka Senin–Kamis pukul 07.00–14.00, Jumat pukul 07.00–11.00, dan Sabtu pukul 07.00–13.00. Jadwal dapat berubah pada bulan-bulan tertentu, mengikuti pengumuman terkini.',
+        answer: 'Koperasi buka setiap hari (kecuali Kamis) pukul 08.00 – 14.00 WIB. Jadwal dapat berubah sewaktu-waktu mengikuti pengumuman terkini.',
     },
     {
         question: 'Apakah laporan keuangan koperasi transparan?',
