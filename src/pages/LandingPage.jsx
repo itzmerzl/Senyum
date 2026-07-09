@@ -3,6 +3,8 @@ import {
   CreditCard, ShieldCheck, ArrowRight,
   Phone, School, Home, LogIn, CheckCircle, ShoppingBag,
   MapPin, Clock, Mail, Calendar,
+  Eye, HeadphonesIcon, Star, MessageCircle,
+  UserPlus, ScanSearch, FileText, Wallet,
 } from 'lucide-react';
 import ThemeToggle from '../components/common/ThemeToggle';
 import BillingCheckSection from '../components/features/students/BillingCheckSection';
@@ -76,6 +78,76 @@ const SERVICES = [
   },
 ];
 
+/* ─── Trust features data ────────────────────────────────── */
+const FEATURES = [
+  {
+    icon: <Eye className="w-5 h-5" />,
+    title: 'Transparan',
+    desc: 'Rincian tagihan dan riwayat pembayaran dapat dipantau kapan saja, real-time.',
+  },
+  {
+    icon: <ShieldCheck className="w-5 h-5" />,
+    title: 'Aman',
+    desc: 'Data santri dan riwayat transaksi dilindungi dengan enkripsi & PIN pribadi.',
+  },
+  {
+    icon: <School className="w-5 h-5" />,
+    title: 'Terpercaya',
+    desc: 'Dikelola dan diawasi langsung oleh Yayasan MBS Tanggul.',
+  },
+  {
+    icon: <HeadphonesIcon className="w-5 h-5" />,
+    title: 'Responsif',
+    desc: 'Pertanyaan wali murid dilayani cepat melalui WhatsApp.',
+  },
+];
+
+/* ─── How it works data ──────────────────────────────────── */
+const STEPS = [
+  {
+    icon: <UserPlus className="w-5 h-5" />,
+    title: 'Masukkan Data Santri',
+    desc: 'Isi No. Registrasi dan PIN 6 digit yang tertera pada kartu santri.',
+  },
+  {
+    icon: <ScanSearch className="w-5 h-5" />,
+    title: 'Verifikasi Otomatis',
+    desc: 'Sistem mencocokkan data secara real-time dan aman.',
+  },
+  {
+    icon: <FileText className="w-5 h-5" />,
+    title: 'Lihat Rincian Tagihan',
+    desc: 'Tagihan, riwayat pembayaran, dan sisa saldo langsung tampil.',
+  },
+  {
+    icon: <Wallet className="w-5 h-5" />,
+    title: 'Bayar via Virtual Account',
+    desc: 'Transfer ke No. VA yang tertera, tanpa perlu datang ke koperasi.',
+  },
+];
+
+/* ─── Testimonials data ──────────────────────────────────── */
+const TESTIMONIALS = [
+  {
+    name: 'S.A',
+    role: 'Wali Santri Kelas 8',
+    rating: 5,
+    quote: 'Cek tagihan jadi lebih praktis, tidak perlu telepon bendahara satu-satu.',
+  },
+  {
+    name: 'R.H',
+    role: 'Wali Santri Kelas 10',
+    rating: 4,
+    quote: 'Rincian pembayaran terlihat jelas, jadi lebih tenang memantau dari rumah.',
+  },
+  {
+    name: 'M.F',
+    role: 'Wali Santri Kelas 7',
+    rating: 4,
+    quote: 'Tampilannya sederhana dan mudah dipahami meski baru pertama kali pakai.',
+  },
+];
+
 /* ─── Color maps (Tailwind static classes) ───────────────── */
 const accentMap = {
   blue: {
@@ -117,14 +189,13 @@ function StatItem({ number, label, index }) {
     <div
       ref={ref}
       className={`py-5 px-4 text-center transition-all duration-500
-        ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
+          ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
       style={{ transitionDelay: isVisible ? `${index * 100}ms` : '0ms' }}
     >
       <div className="text-2xl font-black tracking-tight text-gray-900 dark:text-white mb-0.5">
         {number}
       </div>
-      <div className="text-[11px] font-semibold uppercase tracking-widest
-                      text-gray-400 dark:text-white/30">
+      <div className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-white/30">
         {label}
       </div>
     </div>
@@ -136,8 +207,7 @@ function SectionHeader({ eyebrow, title, desc }) {
   return (
     <div
       ref={ref}
-      className={`text-center mb-14 transition-all duration-700
-        ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+      className={`text-center mb-14 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
     >
       <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-3">
         {eyebrow}
@@ -164,10 +234,55 @@ function RevealCard({ children, index = 0, direction = 'up', className = '' }) {
     <div
       ref={ref}
       className={`transition-all duration-700 ${className}
-        ${isVisible ? 'opacity-100 translate-x-0 translate-y-0 scale-100' : `opacity-0 scale-95 ${hiddenTransform}`}`}
+          ${isVisible ? 'opacity-100 translate-x-0 translate-y-0 scale-100' : `opacity-0 scale-95 ${hiddenTransform}`}`}
       style={{ transitionDelay: isVisible ? `${index * 120}ms` : '0ms' }}
     >
       {children}
+    </div>
+  );
+}
+
+function StarRating({ rating }) {
+  return (
+    <div className="flex gap-0.5 mb-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className={`w-3.5 h-3.5 ${i < rating
+            ? 'fill-amber-400 text-amber-400'
+            : 'fill-gray-200 text-gray-200 dark:fill-white/10 dark:text-white/10'
+            }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function StepItem({ step, index, isLast }) {
+  const { ref, isVisible } = useScrollReveal({ threshold: 0.3 });
+  return (
+    <div
+      ref={ref}
+      className={`relative flex-1 text-center transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+      style={{ transitionDelay: isVisible ? `${index * 120}ms` : '0ms' }}
+    >
+      {!isLast && (
+        <div className="hidden sm:block absolute top-6 left-1/2 w-full h-px bg-gray-200 dark:bg-white/10" />
+      )}
+      <div className="relative inline-flex flex-col items-center">
+        <div className="w-12 h-12 rounded-full bg-white dark:bg-[#0a0e1a] border-2 border-blue-500 dark:border-blue-400 flex items-center justify-center mb-3 relative z-10 text-blue-600 dark:text-blue-400">
+          {step.icon}
+        </div>
+        <span className="text-[10px] font-bold text-blue-500 mb-1">
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1.5 max-w-[140px]">
+          {step.title}
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-white/40 leading-relaxed max-w-[160px]">
+          {step.desc}
+        </p>
+      </div>
     </div>
   );
 }
@@ -181,11 +296,8 @@ export default function LandingPage() {
         className="pointer-events-none fixed inset-0 z-0 hidden dark:block bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:32px_32px]"
       />
 
-      {/* ════════════════════════════════════════
-          NAVBAR
-      ════════════════════════════════════════ */}
-      <nav className="fixed w-full z-50 border-b border-gray-100 dark:border-white/[0.06]
-                      bg-white/80 dark:bg-[#0a0e1a]/85 backdrop-blur-md transition-colors duration-300">
+      {/* ── Navbar ── */}
+      <nav className="fixed w-full z-50 border-b border-gray-100 dark:border-white/[0.06] bg-white/80 dark:bg-[#0a0e1a]/85 backdrop-blur-md transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-15 items-center py-3">
 
@@ -207,8 +319,7 @@ export default function LandingPage() {
                 <a
                   key={href}
                   href={href}
-                  className="text-sm text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white
-                             font-medium transition-colors duration-200"
+                  className="text-sm text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white font-medium transition-colors duration-200"
                 >
                   {label}
                 </a>
@@ -220,10 +331,7 @@ export default function LandingPage() {
               <ThemeToggle />
               <Link
                 to="/login"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-                           bg-blue-600 hover:bg-blue-700 text-white
-                           shadow-lg shadow-blue-500/25 dark:shadow-blue-500/10
-                           transition-all duration-200 hover:-translate-y-px"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-500/10 transition-all duration-200 hover:-translate-y-px"
               >
                 <LogIn size={15} className="md:hidden" />
                 <span className="hidden md:inline">Login Staff</span>
@@ -235,26 +343,17 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ════════════════════════════════════════
-          HERO
-      ════════════════════════════════════════ */}
+      {/* ── Hero ── */}
       <section className="relative pt-28 pb-16 lg:pt-40 lg:pb-24 text-center z-10">
 
         {/* Glow blobs */}
-        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2
-                        w-[700px] h-[500px] rounded-full
-                        bg-blue-100/60 dark:bg-blue-500/8 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4
-                        w-[500px] h-[500px] rounded-full
-                        bg-amber-100/50 dark:bg-amber-400/6 blur-3xl" />
+        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-blue-100/60 dark:bg-blue-500/8 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 w-[500px] h-[500px] rounded-full bg-amber-100/50 dark:bg-amber-400/6 blur-3xl" />
 
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6">
 
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-7
-                          bg-blue-50 dark:bg-blue-500/10
-                          border border-blue-200 dark:border-blue-500/25
-                          text-blue-700 dark:text-blue-400">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-7 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/25 text-blue-700 dark:text-blue-400">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500" />
@@ -263,12 +362,9 @@ export default function LandingPage() {
           </div>
 
           {/* Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] mb-5
-                         text-gray-900 dark:text-white">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] mb-5 text-gray-900 dark:text-white">
             Tagihan Santri,{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-amber-400
-                             dark:from-blue-400 dark:to-amber-300
-                             bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 to-amber-400 dark:from-blue-400 dark:to-amber-300 bg-clip-text text-transparent">
               Transparan &amp; Mudah
             </span>
           </h1>
@@ -282,23 +378,14 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <button
               onClick={() => document.getElementById('cek-tagihan')?.scrollIntoView({ behavior: 'smooth' })}
-              className="group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
-                         bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm
-                         shadow-xl shadow-blue-500/30 dark:shadow-blue-500/15
-                         transition-all duration-200 hover:-translate-y-0.5"
+              className="group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-xl shadow-blue-500/30 dark:shadow-blue-500/15 transition-all duration-200 hover:-translate-y-0.5"
             >
               Cek Tagihan Sekarang
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </button>
             <a
               href="#info"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
-                         text-sm font-semibold border transition-all duration-200
-                         bg-white dark:bg-white/5
-                         border-gray-200 dark:border-white/10
-                         text-gray-700 dark:text-white/70
-                         hover:bg-gray-50 dark:hover:bg-white/10
-                         hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold border transition-all duration-200 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/10 hover:-translate-y-0.5"
             >
               Informasi Program
             </a>
@@ -306,14 +393,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          STATS BAR
-      ════════════════════════════════════════ */}
-      <div className="relative z-10 border-y border-gray-100 dark:border-white/[0.06]
-                      bg-gray-50/70 dark:bg-white/[0.02]">
+      {/* ── Stats Bar ── */}
+      <div className="relative z-10 border-y border-gray-100 dark:border-white/[0.06] bg-gray-50/70 dark:bg-white/[0.02]">
         <div className="max-w-3xl mx-auto px-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0
-                          divide-gray-100 dark:divide-white/[0.06]">
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100 dark:divide-white/[0.06]">
             {STATS.map(({ number, label }, index) => (
               <StatItem key={label} number={number} label={label} index={index} />
             ))}
@@ -321,23 +404,89 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ════════════════════════════════════════
-          CEK TAGIHAN  (existing component)
-      ════════════════════════════════════════ */}
+      {/* ── Keunggulan Layanan ── */}
+      <section className="relative z-10 py-20 lg:py-28 bg-white dark:bg-transparent">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            eyebrow="Kenapa Koperasi Senyum"
+            title="Keunggulan Layanan"
+            desc="Dibangun untuk kenyamanan dan kepercayaan wali murid."
+          />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {FEATURES.map((f, index) => (
+              <RevealCard key={f.title} index={index} direction="up">
+                <div className="rounded-2xl p-6 border border-gray-100 dark:border-white/[0.07] bg-white dark:bg-white/[0.03] hover:-translate-y-1 transition-all duration-300 h-full">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                    {f.icon}
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">
+                    {f.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-white/40 leading-relaxed">
+                    {f.desc}
+                  </p>
+                </div>
+              </RevealCard>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Cara Kerja ── */}
+      <section className="relative z-10 py-20 lg:py-28 bg-gray-50 dark:bg-white/[0.015] border-y border-gray-100 dark:border-white/[0.05]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            eyebrow="Alur Layanan"
+            title="Cara Kerja"
+            desc="Empat langkah mudah untuk memantau tagihan santri Anda."
+          />
+          <div className="flex flex-col sm:flex-row gap-10 sm:gap-4">
+            {STEPS.map((step, index) => (
+              <StepItem key={step.title} step={step} index={index} isLast={index === STEPS.length - 1} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Cek Tagihan ── */}
       <div className="relative z-10">
         <BillingCheckSection />
       </div>
 
-      {/* ════════════════════════════════════════
-          PENGUMUMAN / INFO TERKINI
-      ════════════════════════════════════════ */}
+      {/* ── Pengumuman ── */}
       <AnnouncementSection />
 
-      {/* ════════════════════════════════════════
-          INFORMASI PROGRAM
-      ════════════════════════════════════════ */}
-      <section id="info" className="relative z-10 py-20 lg:py-28
-                                     bg-white dark:bg-transparent">
+      {/* ── Testimoni ── */}
+      <section className="relative z-10 py-20 lg:py-28 bg-white dark:bg-transparent">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            eyebrow="Kata Wali Murid"
+            title="Testimoni"
+            desc="Pengalaman wali murid menggunakan layanan cek tagihan."
+          />
+          <div className="grid sm:grid-cols-3 gap-5">
+            {TESTIMONIALS.map((t, index) => (
+              <RevealCard key={t.name} index={index} direction="up">
+                <div className="rounded-2xl p-6 border border-gray-100 dark:border-white/[0.07]
+                            bg-white dark:bg-white/[0.03] h-full">
+                  <StarRating rating={t.rating} />
+                  <p className="text-sm text-gray-600 dark:text-white/60 leading-relaxed mb-4">
+                    "{t.quote}"
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white">{t.name}</span>
+                    <span className="text-xs text-gray-400 dark:text-white/30">·</span>
+                    <span className="text-xs text-gray-500 dark:text-white/40">{t.role}</span>
+                  </div>
+                </div>
+              </RevealCard>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Informasi Program ── */}
+      <section id="info" className="relative z-10 py-20 lg:py-28 bg-white dark:bg-transparent">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Section header */}
@@ -355,14 +504,14 @@ export default function LandingPage() {
                 <RevealCard key={prog.id} index={index} direction={index % 2 === 0 ? 'left' : 'right'}>
                   <div
                     className={`
-                      group relative rounded-2xl p-7
-                      border border-t-2 ${c.cardTop}
-                      border-gray-100 dark:border-white/[0.07]
-                      bg-white dark:bg-white/[0.03]
-                      hover:border-gray-200 dark:hover:border-white/[0.12]
-                      hover:-translate-y-1
-                      transition-all duration-300
-                    `}
+                        group relative rounded-2xl p-7
+                        border border-t-2 ${c.cardTop}
+                        border-gray-100 dark:border-white/[0.07]
+                        bg-white dark:bg-white/[0.03]
+                        hover:border-gray-200 dark:hover:border-white/[0.12]
+                        hover:-translate-y-1
+                        transition-all duration-300
+                      `}
                   >
                     {/* Card icon + title */}
                     <div className="flex items-center gap-3 mb-5">
@@ -403,17 +552,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          FAQ
-      ════════════════════════════════════════ */}
+      {/* ── FAQ ── */}
       <FAQSection />
 
-      {/* ════════════════════════════════════════
-          LAYANAN KOPERASI
-      ════════════════════════════════════════ */}
-      <section id="services" className="relative z-10 py-20 lg:py-28
-                                        bg-gray-50 dark:bg-white/[0.015]
-                                        border-y border-gray-100 dark:border-white/[0.05]">
+      {/* ── CTA WhatsApp ── */}
+      <section className="relative z-10 py-16 px-4">
+        <div className="max-w-3xl mx-auto">
+          <RevealCard>
+            <div className="rounded-2xl p-10 sm:p-12 text-center bg-gray-900 dark:bg-white/[0.04] border border-transparent dark:border-white/[0.07]">
+              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mx-auto mb-5 text-white">
+                <MessageCircle className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Masih ada pertanyaan?</h3>
+              <p className="text-sm text-white/50 mb-6 max-w-sm mx-auto">
+                Tim kami siap membantu wali murid melalui WhatsApp.
+              </p>
+
+              <a href="https://wa.me/6285183079329"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-gray-900 text-sm font-semibold hover:bg-gray-100 transition-all duration-200 hover:-translate-y-0.5"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Hubungi via WhatsApp
+              </a>
+            </div>
+          </RevealCard>
+        </div>
+      </section>
+      {/* ── Layanan Koperasi ── */}
+      <section id="services" className="relative z-10 py-20 lg:py-28 bg-gray-50 dark:bg-white/[0.015] border-y border-gray-100 dark:border-white/[0.05]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <SectionHeader
@@ -428,13 +596,7 @@ export default function LandingPage() {
               return (
                 <RevealCard key={svc.title} index={index} direction="up">
                   <div
-                    className="group rounded-2xl p-6
-                               border border-gray-100 dark:border-white/[0.07]
-                               bg-white dark:bg-white/[0.03]
-                               hover:border-gray-200 dark:hover:border-blue-500/30
-                               hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5
-                               dark:hover:shadow-none
-                               transition-all duration-300"
+                    className="group rounded-2xl p-6 border border-gray-100 dark:border-white/[0.07] bg-white dark:bg-white/[0.03] hover:border-gray-200 dark:hover:border-blue-500/30 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-none transition-all duration-300"
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-5 ${c.iconBg} ${c.iconText}`}>
                       {svc.icon}
@@ -453,9 +615,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          FOOTER
-      ════════════════════════════════════════ */}
+      {/* ── Footer ── */}
       <footer id="contact" className="relative z-10 py-14 bg-white dark:bg-[#0a0e1a] border-t border-gray-100 dark:border-white/[0.05]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
