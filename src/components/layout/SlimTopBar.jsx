@@ -88,7 +88,7 @@ function SearchResultItem({ item, isHighlighted, onClick, isRecent = false }) {
       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]">
         {isRecent
           ? <Clock className="w-4 h-4" strokeWidth={2} />
-          : <NavIcon icon={item.icon} className="w-4.5 h-4.5" />
+          : <NavIcon icon={item.icon} className="w-4 h-4" />
         }
       </div>
       <div className="min-w-0 flex-1">
@@ -106,6 +106,102 @@ function SearchResultItem({ item, isHighlighted, onClick, isRecent = false }) {
   );
 }
 
+// ─── Icon Button (konsisten: border + bg + hover) ───────────────────────────
+function IconButton({ children, className = "", active = false, ...props }) {
+  return (
+    <button
+      type="button"
+      className={`w-8 h-8 flex items-center justify-center rounded-xl border transition
+          ${active
+          ? 'bg-[var(--color-surface-alt)] border-[var(--color-border)] text-[var(--color-primary)]'
+          : 'border-[var(--color-border)] bg-[var(--color-surface-alt)]/40 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-primary)]'}
+          disabled:cursor-not-allowed disabled:opacity-50
+          ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─── Live Clock ──────────────────────────────────────────────────────────────
+function LiveClock() {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  const date = now.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  return (
+    <div className="hidden lg:flex items-center gap-2 h-8 px-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)]/40 mr-1">
+      <Clock className="w-3.5 h-3.5 text-[var(--color-text-muted)]" strokeWidth={2} />
+      <span className="text-[12px] font-extrabold text-[var(--color-text)] tabular-nums">{time}</span>
+      <span className="text-[var(--color-text-muted)]/40">|</span>
+      <span className="text-[11px] font-semibold text-[var(--color-text-muted)] whitespace-nowrap">{date}</span>
+    </div>
+  );
+}
+// ─── Language Dropdown (topbar) ─────────────────────────────────────────────
+const LANGS = [
+  { code: 'id', label: 'ID', name: 'Indonesia' },
+  { code: 'en', label: 'EN', name: 'English' },
+];
+
+function LanguageDropdown({ language, setLanguage, hidden }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = LANGS.find(l => l.code === language) || LANGS[0];
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    window.addEventListener('mousedown', onClick);
+    return () => window.removeEventListener('mousedown', onClick);
+  }, []);
+
+  return (
+    <div className={`relative ${hidden ? 'hidden' : 'block'}`} ref={ref}>
+      <IconButton
+        onClick={() => setOpen(v => !v)}
+        active={open}
+        aria-label="Ganti Bahasa"
+        className="text-[11px] font-black"
+      >
+        {current.label}
+      </IconButton>
+
+      {open && (
+        <div className="absolute mt-2 w-40 rounded-2xl glass-dropdown overflow-hidden z-50 right-0 p-1.5 animate-in fade-in zoom-in duration-150">
+          {LANGS.map(item => (
+            <button
+              key={item.code}
+              onClick={() => {
+                setLanguage(item.code);
+                setOpen(false);
+                toast.success(`Bahasa: ${item.name}`);
+              }}
+              type="button"
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-bold transition
+                  ${language === item.code
+                  ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                  : 'text-[var(--color-text)] hover:bg-[var(--color-surface-alt)]'}`}
+            >
+              <span className="w-6 text-[9px] font-black text-[var(--color-text-muted)]">{item.label}</span>
+              <span className="flex-1 text-left">{item.name}</span>
+              {language === item.code && <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function SlimTopBar({ onToggleSidebar, sidebarCollapsed }) {
   const { theme, toggleTheme } = useTheme();
@@ -118,7 +214,6 @@ export default function SlimTopBar({ onToggleSidebar, sidebarCollapsed }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [language, setLanguage] = useState('id');
-  const [langOpen, setLangOpen] = useState(false); // di profile dropdown sekarang
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(0);
@@ -285,39 +380,33 @@ export default function SlimTopBar({ onToggleSidebar, sidebarCollapsed }) {
           <div className={`flex items-center gap-2 sm:gap-3 min-w-0 ${searchFocused ? 'flex-1' : 'flex-1'}`}>
             {/* Desktop sidebar toggle + back button — tersembunyi saat search fokus di mobile */}
             <div className={`flex items-center gap-1 shrink-0 ${searchFocused ? 'hidden sm:flex' : 'flex'}`}>
-              <button
+              <IconButton
                 onClick={onToggleSidebar}
-                type="button"
                 aria-label="Toggle sidebar"
-                className="hidden lg:flex w-8 h-8 items-center justify-center rounded-xl hover:bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                className="hidden lg:flex"
               >
                 {sidebarCollapsed
-                  ? <PanelLeftOpen className="w-4.5 h-4.5" strokeWidth={2} />
-                  : <PanelLeftClose className="w-4.5 h-4.5" strokeWidth={2} />
+                  ? <PanelLeftOpen className="w-4 h-4" strokeWidth={2} />
+                  : <PanelLeftClose className="w-4 h-4" strokeWidth={2} />
                 }
-              </button>
-              <button
-                onClick={() => navigate(-1)}
-                type="button"
-                aria-label="Kembali"
-                className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-              >
-                <ChevronLeft className="w-4.5 h-4.5" strokeWidth={2} />
-              </button>
+              </IconButton>
+
+              <IconButton onClick={() => navigate(-1)} aria-label="Kembali">
+                <ChevronLeft className="w-4 h-4" strokeWidth={2} />
+              </IconButton>
             </div>
 
             {/* Search */}
             <div className={`relative transition-all duration-200 ${searchFocused ? 'flex-1' : 'sm:flex-1'}`} ref={searchRef}>
               {/* Mobile icon button saat belum fokus */}
               {!searchFocused && (
-                <button
-                  type="button"
-                  aria-label="Cari halaman"
+                <IconButton
                   onClick={() => setSearchFocused(true)}
-                  className="sm:hidden w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition"
+                  aria-label="Cari halaman"
+                  className="sm:hidden"
                 >
                   <Search className="w-4 h-4" strokeWidth={2} />
-                </button>
+                </IconButton>
               )}
 
               <div className={`w-full ${searchFocused ? 'flex' : 'hidden sm:flex'} items-center gap-2 h-8 px-3 rounded-xl border transition-all
@@ -397,46 +486,50 @@ export default function SlimTopBar({ onToggleSidebar, sidebarCollapsed }) {
 
           {/* Right: Theme + AI + Bell + Avatar (language pindah ke profile dropdown) */}
           <div className="flex items-center gap-1 shrink-0">
-            {/* Theme toggle */}
-            <button
-              onClick={toggleTheme}
-              aria-label={isDark ? "Mode Terang" : "Mode Gelap"}
-              className={`w-8 h-8 items-center justify-center rounded-xl hover:bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition ${searchFocused ? 'hidden' : 'flex'}`}
-              type="button"
-            >
-              {isDark
-                ? <Sun className="w-4.5 h-4.5" strokeWidth={2} />
-                : <Moon className="w-4.5 h-4.5" strokeWidth={2} />
-              }
-            </button>
+            {/* Live Clock */}
+            <LiveClock />
+
+            {/* Language toggle */}
+            <LanguageDropdown language={language} setLanguage={setLanguage} hidden={searchFocused} />
 
             {/* Asisten AI */}
             <button
               onClick={() => toast('Fitur Asisten AI sedang disiapkan!', { icon: '✨' })}
               className={`w-8 h-8 sm:w-auto sm:h-8 flex items-center justify-center sm:gap-1.5 sm:px-3 rounded-xl
-                  bg-gradient-to-r from-indigo-500/10 to-violet-500/10 hover:from-indigo-500/20 hover:to-violet-500/20
-                  text-[var(--color-primary)] border border-indigo-250/30 dark:border-indigo-900/30
-                  hover:border-[var(--color-primary)]/40 transition text-[11px] font-extrabold shadow-sm shadow-indigo-500/5
-                  ${searchFocused ? 'hidden' : 'flex'}`}
+            bg-gradient-to-r from-indigo-500/10 to-violet-500/10 hover:from-indigo-500/20 hover:to-violet-500/20
+            text-[var(--color-primary)] border border-indigo-250/30 dark:border-indigo-900/30
+            hover:border-[var(--color-primary)]/40 transition text-[11px] font-extrabold shadow-sm shadow-indigo-500/5
+            ${searchFocused ? 'hidden' : 'flex'}`}
               type="button"
             >
               <Sparkles className="w-4 h-4 shrink-0 text-[var(--color-primary)] animate-pulse" strokeWidth={2} />
               <span className="hidden sm:inline">Asisten AI</span>
             </button>
 
+            <IconButton
+              onClick={toggleTheme}
+              aria-label={isDark ? "Mode Terang" : "Mode Gelap"}
+              className={searchFocused ? 'hidden' : ''}
+            >
+              {isDark
+                ? <Sun className="w-4 h-4" strokeWidth={2} />
+                : <Moon className="w-4 h-4" strokeWidth={2} />
+              }
+            </IconButton>
+
             {/* Notification bell */}
             <div className={`relative ${searchFocused ? 'hidden' : 'block'}`} ref={notifBtnRef}>
               <button
                 onClick={() => setNotifOpen(v => !v)}
-                className={`relative w-8 h-8 flex items-center justify-center rounded-xl transition
-                    ${notifOpen
-                    ? 'bg-[var(--color-surface-alt)] text-[var(--color-primary)]'
-                    : 'hover:bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]'}
-                    ${unreadCount > 0 ? 'animate-[bellShake_2s_ease-in-out_infinite]' : ''}`}
+                className={`relative w-8 h-8 flex items-center justify-center rounded-xl border transition
+        ${notifOpen
+                    ? 'bg-[var(--color-surface-alt)] border-[var(--color-border)] text-[var(--color-primary)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface-alt)]/40 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-primary)]'}
+        ${unreadCount > 0 ? 'animate-[bellShake_2s_ease-in-out_infinite]' : ''}`}
                 aria-label="Notifikasi"
                 type="button"
               >
-                <Bell className="w-4.5 h-4.5" strokeWidth={2} />
+                <Bell className="w-4 h-4" strokeWidth={2} />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -end-0.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-black text-white flex items-center justify-center border border-[var(--color-surface)]">
                     {unreadCount > 9 ? "9+" : unreadCount}

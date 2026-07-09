@@ -5,7 +5,7 @@ import {
   Calendar, Store, BarChart, ArrowRight, AlertTriangle, Clock,
   CheckCircle, XCircle, Award, Zap, RefreshCw
 } from 'lucide-react';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/DashboardLayout';
 import StatsCarousel from '../components/common/StatsCarousel';
 import { getDashboardStats, getLiabilitiesSummary, getCashFlow, getPerformanceMetrics } from '../services/dashboardService';
 import { formatCurrency } from '../utils/formatters';

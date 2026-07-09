@@ -32,8 +32,8 @@ function Breadcrumb() {
             {isLast || !crumb.path ? (
               <span
                 className={`text-[11px] font-semibold truncate ${isLast
-                    ? 'text-[var(--color-text)]'
-                    : 'text-[var(--color-text-muted)]'
+                  ? 'text-[var(--color-text)]'
+                  : 'text-[var(--color-text-muted)]'
                   }`}
               >
                 {i === 0 && (
@@ -134,7 +134,7 @@ export default function Layout({ children }) {
       {/* Page Content */}
       <main
         data-layout-main
-        className="relative z-10 w-full px-4 sm:px-5 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6 transition-all duration-300"
+        className="relative z-10 w-full px-3 sm:px-4 lg:px-5 py-3 lg:py-4 pb-24 lg:pb-6 transition-all duration-300"
       >
         <style>{`
           @media (min-width: 1024px) {
@@ -144,7 +144,7 @@ export default function Layout({ children }) {
             }
           }
         `}</style>
-        <div className="mx-auto w-full max-w-[1600px]">
+        <div className="mx-auto w-full max-w-[1400px]">
           <Breadcrumb />
           {children}
         </div>
