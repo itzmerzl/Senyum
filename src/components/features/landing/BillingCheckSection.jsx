@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { checkPublicBilling } from '../../../services/studentService';
-import { Loader2, Search, AlertCircle, CheckCircle, CreditCard, Calendar, Sparkles, Info } from 'lucide-react';
+import { Loader2, Search, AlertCircle, CheckCircle, CreditCard, Calendar, BookOpenText, Info } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 
@@ -54,12 +54,12 @@ export default function BillingCheckSection() {
     return (
         <section
             id="cek-tagihan"
-            className="relative z-10 py-16 lg:py-20
+            className="relative z-10 py-12 lg:py-16
                        bg-blue-50/60 dark:bg-transparent
                        border-y border-blue-100 dark:border-white/[0.05]"
         >
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-10">
+                <div className="text-center mb-8">
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-3">
                         Layanan Wali Murid
                     </p>
@@ -71,17 +71,29 @@ export default function BillingCheckSection() {
                     </p>
                 </div>
 
-                <div className="rounded-2xl p-6 sm:p-8
-                                border border-gray-100 dark:border-white/[0.07]
+                <div className="rounded-2xl p-6
+                                border border-gray-200 dark:border-white/[0.07]
                                 bg-white dark:bg-white/[0.03]
-                                shadow-lg shadow-blue-500/5 dark:shadow-none">
-                    
-                    <div className={`grid lg:grid-cols-12 gap-8 items-center ${result ? '' : 'lg:divide-x lg:divide-gray-100 lg:dark:divide-white/[0.06]'}`}>
-                        
+                                shadow-[0_2px_4px_rgba(0,0,0,0.04),0_20px_40px_-14px_rgba(37,99,235,0.15)] dark:shadow-none">
+
+                    <div className={`grid lg:grid-cols-12 gap-6 items-stretch ${result ? '' : 'lg:divide-x lg:divide-gray-100 lg:dark:divide-white/[0.06]'}`}>
+
                         {/* Form & Results Column */}
-                        <div className={`${result ? 'lg:col-span-12' : 'lg:col-span-7 pr-0 lg:pr-8'}`}>
-                            {/* Form Section */}
-                            <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+                        <div className={`flex flex-col justify-center ${result ? 'lg:col-span-12' : 'lg:col-span-7 pr-0 lg:pr-8'}`}>
+                            {/* Trust Badge */}
+                            <div className="flex items-center justify-center gap-2 mb-4 py-2 px-4 rounded-lg
+                bg-emerald-50 dark:bg-emerald-500/10
+                border border-emerald-100 dark:border-emerald-500/20
+                w-fit mx-auto">
+                                <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                                    Data Anda Aman &amp; Terenkripsi
+                                </span>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="space-y-4 mb-5">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-white/40">
                                         No. Registrasi
@@ -151,7 +163,7 @@ export default function BillingCheckSection() {
 
                             {/* Error Display */}
                             {error && (
-                                <div className="mb-6 p-4 rounded-xl flex items-center gap-3
+                                <div className="mb-5 p-4 rounded-xl flex items-center gap-3
                                                 bg-red-50 dark:bg-red-500/10
                                                 text-red-600 dark:text-red-400
                                                 animate-in fade-in slide-in-from-top-2">
@@ -167,40 +179,56 @@ export default function BillingCheckSection() {
                                     <span>Gunakan nomor registrasi dan PIN yang tertera pada kartu pelajar santri Anda. Klik pada kartu di samping untuk mencoba data demo secara otomatis.</span>
                                 </p>
                             )}
+
+                            {/* Contact Help */}
+                            {!result && (
+                                <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-white/10
+                    flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-white/40">
+                                    <span>Butuh bantuan?</span>
+
+                                    <a href="https://wa.me/6285183079329"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                        Hubungi Admin Koperasi
+                                    </a>
+                                </div>
+                            )}
                         </div>
 
                         {/* Card Mockup Column */}
                         {!result && (
-                            <div className="lg:col-span-5 flex flex-col items-center justify-center pl-0 lg:pl-8 py-4">
-                                <p className="text-xs font-bold text-gray-400 dark:text-white/30 uppercase tracking-widest mb-4 flex items-center gap-1.5">
-                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                            <div className="lg:col-span-5 flex flex-col items-center justify-center pl-0 lg:pl-8">
+                                <p className="text-xs font-bold text-gray-400 dark:text-white/30 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                    <BookOpenText className="w-3.5 h-3.5 text-amber-500" />
                                     Panduan Struk Koperasi
                                 </p>
-                                
+
                                 {/* Thermal Receipt Graphic */}
-                                <div 
+                                <div
                                     onClick={handleAutoFillDemo}
                                     title="Klik untuk mencoba data demo"
-                                    className="relative w-full max-w-[270px] bg-[#fafaf9] dark:bg-[#141a27] text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-white/[0.08] shadow-md p-5 font-mono text-xs transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-pointer flex flex-col items-center"
+                                    className="relative w-full max-w-[270px] bg-[#fafaf9] dark:bg-[#141a27] text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-white/[0.08] shadow-md p-4 font-mono text-xs transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-pointer flex flex-col items-center"
                                     style={{
                                         boxShadow: '0 8px 24px -8px rgba(0,0,0,0.08)',
                                     }}
                                 >
                                     {/* Receipt Zig-zag top effect via CSS dashes */}
-                                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent bg-[size:8px_4px] bg-repeat-x" />
-                                    
+                                    <div className="absolute bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent bg-[size:8px_4px] bg-repeat-x" />
+
                                     {/* Header */}
-                                    <div className="text-center w-full space-y-1 mb-3">
+                                    <div className="text-center w-full space-y-0.5 mb-2">
                                         <p className="font-bold text-sm tracking-wider text-gray-905 dark:text-white">KOPERASI SENYUM</p>
                                         <p className="text-[9px] text-gray-400 dark:text-white/40">MBS TANGGUL JEMBER</p>
                                         <p className="text-[9px] text-gray-400 dark:text-white/40">TELP: 0851-8307-9329</p>
-                                        <p className="border-t border-dashed border-gray-300 dark:border-white/10 my-2"></p>
+                                        <p className="border-t border-dashed border-gray-300 dark:border-white/10 my-1.5"></p>
                                         <p className="text-[10px] font-bold text-gray-800 dark:text-slate-300">BUKTI REGISTRASI AKSES</p>
-                                        <p className="border-b border-dashed border-gray-300 dark:border-white/10 my-2"></p>
+                                        <p className="border-b border-dashed border-gray-300 dark:border-white/10 my-1.5"></p>
                                     </div>
 
                                     {/* Body details */}
-                                    <div className="w-full space-y-2 text-[10px]">
+                                    <div className="w-full space-y-1.5 text-[10px]">
                                         <div className="flex justify-between">
                                             <span className="text-gray-400 dark:text-white/30">TGL:</span>
                                             <span>28-06-2026</span>
@@ -209,59 +237,57 @@ export default function BillingCheckSection() {
                                             <span className="text-gray-400 dark:text-white/30">NAMA:</span>
                                             <span className="font-bold text-gray-950 dark:text-white truncate max-w-[150px]">AHMAD RAIHAN</span>
                                         </div>
-                                        
-                                        <p className="border-t border-dotted border-gray-200 dark:border-white/5 my-2"></p>
+
+                                        <p className="border-t border-dotted border-gray-200 dark:border-white/5 my-1.5"></p>
 
                                         {/* Registration Number Field */}
-                                        <div 
-                                            className={`p-1.5 rounded transition-all duration-200 border text-center ${
-                                                cardHighlight === 'reg' 
-                                                    ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-400 scale-[1.02]' 
-                                                    : 'border-transparent'
-                                            }`}
+                                        <div
+                                            className={`p-1.5 rounded transition-all duration-200 border text-center ${cardHighlight === 'reg'
+                                                ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-400 scale-[1.02]'
+                                                : 'border-transparent'
+                                                }`}
                                         >
                                             <p className="text-[8px] text-gray-400 dark:text-white/30 tracking-wider mb-0.5 font-sans">NO. REGISTRASI (KLIK)</p>
                                             <p className="font-bold text-blue-600 dark:text-blue-400 text-xs">REG-2026-0001</p>
                                         </div>
-                                        
+
                                         {/* PIN Field */}
-                                        <div 
-                                            className={`p-1.5 rounded transition-all duration-200 border text-center ${
-                                                cardHighlight === 'pin' 
-                                                    ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-400 scale-[1.02]' 
-                                                    : 'border-transparent'
-                                            }`}
+                                        <div
+                                            className={`p-1.5 rounded transition-all duration-200 border text-center ${cardHighlight === 'pin'
+                                                ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-400 scale-[1.02]'
+                                                : 'border-transparent'
+                                                }`}
                                         >
                                             <p className="text-[8px] text-gray-400 dark:text-white/30 tracking-wider mb-0.5 font-sans">PIN AKSES (KLIK)</p>
                                             <p className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">123456</p>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Barcode & Footer Strip */}
-                                    <div className="w-full text-center mt-4 space-y-2">
-                                        <p className="border-t border-dashed border-gray-300 dark:border-white/10 my-2"></p>
-                                        
+                                    <div className="w-full text-center mt-2 space-y-1">
+                                        <p className="border-t border-dashed border-gray-300 dark:border-white/10 my-1"></p>
+
                                         {/* Barcode */}
-                                        <div className="flex justify-center items-center gap-0.5 opacity-60 py-1">
-                                            <div className="w-0.5 h-6 bg-black dark:bg-white"></div>
-                                            <div className="w-1.5 h-6 bg-black dark:bg-white"></div>
-                                            <div className="w-px h-6 bg-black dark:bg-white"></div>
-                                            <div className="w-0.5 h-6 bg-black dark:bg-white"></div>
-                                            <div className="w-1.5 h-6 bg-black dark:bg-white"></div>
-                                            <div className="w-0.5 h-6 bg-black dark:bg-white"></div>
-                                            <div className="w-1 h-6 bg-black dark:bg-white"></div>
-                                            <div className="w-px h-6 bg-black dark:bg-white"></div>
-                                            <div className="w-1.5 h-6 bg-black dark:bg-white"></div>
+                                        <div className="flex justify-center items-center gap-0.5 opacity-60">
+                                            <div className="w-0.5 h-4 bg-black dark:bg-white"></div>
+                                            <div className="w-1.5 h-4 bg-black dark:bg-white"></div>
+                                            <div className="w-px h-4 bg-black dark:bg-white"></div>
+                                            <div className="w-0.5 h-4 bg-black dark:bg-white"></div>
+                                            <div className="w-1.5 h-4 bg-black dark:bg-white"></div>
+                                            <div className="w-0.5 h-4 bg-black dark:bg-white"></div>
+                                            <div className="w-1 h-4 bg-black dark:bg-white"></div>
+                                            <div className="w-px h-4 bg-black dark:bg-white"></div>
+                                            <div className="w-1.5 h-4 bg-black dark:bg-white"></div>
                                         </div>
-                                        
+
                                         <p className="text-[8px] text-gray-400 dark:text-white/30 leading-normal font-sans">
                                             *Simpan bukti cetak ini untuk mengecek status tagihan secara online.
                                         </p>
                                     </div>
                                 </div>
-                                
-                                <p className="text-[10px] text-gray-400 dark:text-white/30 text-center mt-3 max-w-[240px]">
-                                    💡 Klik struk untuk memasukkan data uji coba otomatis.
+
+                                <p className="text-[10px] text-gray-400 dark:text-white/30 text-center mt-2.5 max-w-[240px]">
+                                    Klik struk untuk memasukkan data uji coba otomatis.
                                 </p>
                             </div>
                         )}
@@ -397,6 +423,6 @@ export default function BillingCheckSection() {
                     )}
                 </div>
             </div>
-        </section>
+        </section >
     );
 }

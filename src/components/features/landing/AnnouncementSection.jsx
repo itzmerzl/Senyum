@@ -108,16 +108,52 @@ export default function AnnouncementSection() {
                 )}
 
                 {error && !loading && (
-                    <p className="text-center text-sm text-red-500 dark:text-red-400">
-                        {error}
-                    </p>
+                    <div>
+                        {/* Ghost cards */}
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 opacity-50 pointer-events-none select-none">
+                            {[0, 1, 2].map((i) => (
+                                <div
+                                    key={i}
+                                    className="rounded-2xl p-6 border border-gray-100 dark:border-white/[0.07]
+                               bg-white dark:bg-white/[0.03]"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="h-5 w-16 rounded-full bg-gray-100 dark:bg-white/10" />
+                                        <span className="h-3 w-14 rounded bg-gray-100 dark:bg-white/10" />
+                                    </div>
+                                    <div className="h-4 w-4/5 rounded bg-gray-200 dark:bg-white/10 mb-3" />
+                                    <div className="space-y-2">
+                                        <div className="h-3 w-full rounded bg-gray-100 dark:bg-white/[0.07]" />
+                                        <div className="h-3 w-11/12 rounded bg-gray-100 dark:bg-white/[0.07]" />
+                                        <div className="h-3 w-2/3 rounded bg-gray-100 dark:bg-white/[0.07]" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Pesan error, di bawah ghost cards */}
+                        <div className="flex items-center justify-center gap-2 mt-4 text-center">
+                            <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            <p className="text-xs text-gray-400 dark:text-white/40">
+                                Pengumuman belum bisa dimuat — {error}
+                            </p>
+                        </div>
+                    </div>
                 )}
 
-                {!loading && !error && (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {announcements.map((item, index) => (
-                            <AnnouncementCard key={item.id} announcement={item} index={index} />
-                        ))}
+                {!loading && !error && announcements.length === 0 && (
+                    <div className="max-w-md mx-auto text-center py-10">
+                        <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-white/[0.03]
+                        flex items-center justify-center mx-auto mb-4
+                        text-gray-300 dark:text-white/20">
+                            <Megaphone className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-600 dark:text-white/60 mb-1">
+                            Belum ada pengumuman
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-white/30 leading-relaxed">
+                            Pengumuman terbaru akan muncul di sini
+                        </p>
                     </div>
                 )}
             </div>

@@ -102,8 +102,9 @@ export default function FAQSection() {
                 </div>
 
                 <div className="rounded-2xl px-6 sm:px-8
-                                border border-gray-100 dark:border-white/[0.07]
-                                bg-white dark:bg-white/[0.03]">
+                                border border-gray-200 dark:border-white/[0.07]
+                                bg-white dark:bg-white/[0.03]
+                                shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_20px_-6px_rgba(0,0,0,0.08)]">
                     {FAQS.map((faq, index) => (
                         <FAQItem
                             key={faq.question}

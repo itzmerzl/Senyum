@@ -7,9 +7,9 @@ import {
   UserPlus, ScanSearch, FileText, Wallet,
 } from 'lucide-react';
 import ThemeToggle from '../components/common/ThemeToggle';
-import BillingCheckSection from '../components/features/students/BillingCheckSection';
-import AnnouncementSection from '../components/features/students/AnnouncementSection';
-import FAQSection from '../components/features/students/FAQSection';
+import BillingCheckSection from '../components/features/landing/BillingCheckSection';
+import AnnouncementSection from '../components/features/landing/AnnouncementSection';
+import FAQSection from '../components/features/landing/FAQSection';
 import useScrollReveal from '../hooks/useScrollReveal';
 import logoSenyum from '../assets/logo-senyum.png';
 
@@ -18,7 +18,7 @@ const STATS = [
   { number: '300+', label: 'Santri Aktif' },
   { number: '2', label: 'Program Tersedia' },
   { number: '100%', label: 'Transparan' },
-  { number: '5 hr', label: 'Buka / Minggu' },
+  { number: '6 hr', label: 'Buka / Minggu' },
 ];
 
 /* ─── Program data ───────────────────────────────────────── */
@@ -56,49 +56,32 @@ const PROGRAMS = [
   },
 ];
 
-/* ─── Services data ──────────────────────────────────────── */
-const SERVICES = [
+/* ─── Layanan & Keunggulan data ──────────────────────────── */
+const BENEFITS = [
   {
     icon: <ShoppingBag className="w-5 h-5" />,
     title: 'Perlengkapan Sekolah',
     desc: 'Seragam, buku pelajaran, kitab, dan alat tulis dengan harga terjangkau dan kualitas terjamin.',
-    accent: 'blue',
   },
   {
     icon: <CreditCard className="w-5 h-5" />,
     title: 'Cicilan Transparan',
     desc: 'Program cicilan untuk seragam dan perlengkapan awal tahun, meringankan beban wali murid.',
-    accent: 'amber',
   },
-  {
-    icon: <ShieldCheck className="w-5 h-5" />,
-    title: 'Amanah & Terpercaya',
-    desc: 'Laporan keuangan transparan dan dapat dipertanggungjawabkan kepada pihak sekolah.',
-    accent: 'sky',
-  },
-];
-
-/* ─── Trust features data ────────────────────────────────── */
-const FEATURES = [
   {
     icon: <Eye className="w-5 h-5" />,
-    title: 'Transparan',
-    desc: 'Rincian tagihan dan riwayat pembayaran dapat dipantau kapan saja, real-time.',
+    title: 'Pantauan Real-time',
+    desc: 'Rincian tagihan dan riwayat pembayaran dapat dipantau kapan saja, langsung dari genggaman.',
   },
   {
     icon: <ShieldCheck className="w-5 h-5" />,
-    title: 'Aman',
-    desc: 'Data santri dan riwayat transaksi dilindungi dengan enkripsi & PIN pribadi.',
-  },
-  {
-    icon: <School className="w-5 h-5" />,
-    title: 'Terpercaya',
-    desc: 'Dikelola dan diawasi langsung oleh Yayasan MBS Tanggul.',
+    title: 'Aman & Terpercaya',
+    desc: 'Data santri dan transaksi dilindungi enkripsi & PIN pribadi, diawasi langsung Yayasan MBS Tanggul.',
   },
   {
     icon: <HeadphonesIcon className="w-5 h-5" />,
-    title: 'Responsif',
-    desc: 'Pertanyaan wali murid dilayani cepat melalui WhatsApp.',
+    title: 'Layanan Responsif',
+    desc: 'Pertanyaan dan keluhan wali murid dilayani cepat melalui WhatsApp.',
   },
 ];
 
@@ -148,7 +131,7 @@ const TESTIMONIALS = [
   },
 ];
 
-/* ─── Color maps (Tailwind static classes) ───────────────── */
+/* ─── Color maps for Program cards ───────────────────────── */
 const accentMap = {
   blue: {
     iconBg: 'bg-blue-100 dark:bg-blue-500/15',
@@ -169,16 +152,6 @@ const accentMap = {
     noteBg: 'bg-amber-50 dark:bg-amber-500/10',
     noteBorder: 'border-amber-200 dark:border-amber-500/25',
     noteText: 'text-amber-700 dark:text-amber-300',
-  },
-  sky: {
-    iconBg: 'bg-sky-100 dark:bg-sky-500/15',
-    iconText: 'text-sky-600 dark:text-sky-400',
-    cardTop: 'border-t-sky-500 dark:border-t-sky-400',
-    checkBg: '',
-    checkText: '',
-    noteBg: '',
-    noteBorder: '',
-    noteText: '',
   },
 };
 
@@ -233,7 +206,7 @@ function RevealCard({ children, index = 0, direction = 'up', className = '' }) {
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ${className}
+      className={`transition-all duration-700 ${className} h-full
           ${isVisible ? 'opacity-100 translate-x-0 translate-y-0 scale-100' : `opacity-0 scale-95 ${hiddenTransform}`}`}
       style={{ transitionDelay: isVisible ? `${index * 120}ms` : '0ms' }}
     >
@@ -315,7 +288,7 @@ export default function LandingPage() {
 
             {/* Nav links */}
             <div className="hidden md:flex items-center gap-8">
-              {[['#info', 'Informasi'], ['#pengumuman', 'Pengumuman'], ['#faq', 'FAQ'], ['#services', 'Layanan'], ['#contact', 'Kontak']].map(([href, label]) => (
+              {[['#layanan', 'Layanan'], ['#cek-tagihan', 'Cek Tagihan'], ['#pengumuman', 'Pengumuman'], ['#info', 'Program'], ['#faq', 'FAQ'], ['#contact', 'Kontak']].map(([href, label]) => (
                 <a
                   key={href}
                   href={href}
@@ -404,18 +377,18 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── Keunggulan Layanan ── */}
-      <section className="relative z-10 py-20 lg:py-28 bg-white dark:bg-transparent">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── Layanan & Keunggulan ── */}
+      <section id="layanan" className="relative z-10 py-20 lg:py-28 bg-white dark:bg-transparent">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
-            eyebrow="Kenapa Koperasi Senyum"
-            title="Keunggulan Layanan"
-            desc="Dibangun untuk kenyamanan dan kepercayaan wali murid."
+            eyebrow="Layanan &amp; Keunggulan"
+            title="Solusi Lengkap Koperasi Sekolah"
+            desc="Memenuhi kebutuhan perlengkapan santri dengan sistem transparan dan terpercaya."
           />
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {FEATURES.map((f, index) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5">
+            {BENEFITS.map((f, index) => (
               <RevealCard key={f.title} index={index} direction="up">
-                <div className="rounded-2xl p-6 border border-gray-100 dark:border-white/[0.07] bg-white dark:bg-white/[0.03] hover:-translate-y-1 transition-all duration-300 h-full">
+                <div className="rounded-2xl p-6 border border-gray-200 dark:border-white/[0.07] bg-white dark:bg-white/[0.03] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_20px_-6px_rgba(0,0,0,0.08)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_32px_-8px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300 h-full flex flex-col items-center text-center">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400">
                     {f.icon}
                   </div>
@@ -467,8 +440,11 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-3 gap-5">
             {TESTIMONIALS.map((t, index) => (
               <RevealCard key={t.name} index={index} direction="up">
-                <div className="rounded-2xl p-6 border border-gray-100 dark:border-white/[0.07]
-                            bg-white dark:bg-white/[0.03] h-full">
+                <div className="rounded-2xl p-6 border border-gray-200 dark:border-white/[0.07]
+                            bg-white dark:bg-white/[0.03]
+                            shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_20px_-6px_rgba(0,0,0,0.08)]
+                            hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_32px_-8px_rgba(0,0,0,0.12)]
+                            transition-shadow duration-300 h-full">
                   <StarRating rating={t.rating} />
                   <p className="text-sm text-gray-600 dark:text-white/60 leading-relaxed mb-4">
                     "{t.quote}"
@@ -504,11 +480,13 @@ export default function LandingPage() {
                 <RevealCard key={prog.id} index={index} direction={index % 2 === 0 ? 'left' : 'right'}>
                   <div
                     className={`
-                        group relative rounded-2xl p-7
-                        border border-t-2 ${c.cardTop}
-                        border-gray-100 dark:border-white/[0.07]
-                        bg-white dark:bg-white/[0.03]
-                        hover:border-gray-200 dark:hover:border-white/[0.12]
+                      group relative rounded-2xl p-7 h-full flex flex-col
+                      shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_20px_-6px_rgba(0,0,0,0.08)]
+                      hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_32px_-8px_rgba(0,0,0,0.12)]
+                      border border-t-2 ${c.cardTop}
+                      border-gray-200 dark:border-white/[0.07]
+                      bg-white dark:bg-white/[0.03]
+                      hover:border-gray-300 dark:hover:border-white/[0.12]
                         hover:-translate-y-1
                         transition-all duration-300
                       `}
@@ -530,7 +508,7 @@ export default function LandingPage() {
                     <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-white/30 mb-3">
                       Kebutuhan Perlengkapan
                     </p>
-                    <ul className="space-y-2 mb-6">
+                    <ul className="space-y-2 mb-6 flex-1">
                       {prog.items.map((item) => (
                         <li key={item} className="flex items-start gap-2.5 text-sm text-gray-600 dark:text-white/60">
                           <span className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${c.checkBg} ${c.checkText}`}>
@@ -541,7 +519,7 @@ export default function LandingPage() {
                       ))}
                     </ul>
 
-                    <div className={`rounded-xl p-3.5 border text-xs leading-relaxed ${c.noteBg} ${c.noteBorder} ${c.noteText}`}>
+                    <div className={`rounded-xl p-3.5 border text-xs leading-relaxed mt-auto ${c.noteBg} ${c.noteBorder} ${c.noteText}`}>
                       💡 {prog.note}
                     </div>
                   </div>
@@ -559,19 +537,27 @@ export default function LandingPage() {
       <section className="relative z-10 py-16 px-4">
         <div className="max-w-3xl mx-auto">
           <RevealCard>
-            <div className="rounded-2xl p-10 sm:p-12 text-center bg-gray-900 dark:bg-white/[0.04] border border-transparent dark:border-white/[0.07]">
-              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mx-auto mb-5 text-white">
+            <div className="rounded-2xl p-10 sm:p-12 text-center shadow-sm
+                      bg-blue-50 dark:bg-blue-500/10 
+                      border border-blue-200 dark:border-blue-500/25">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-500/15 
+                        flex items-center justify-center mx-auto mb-5 
+                        text-blue-600 dark:text-blue-400">
                 <MessageCircle className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Masih ada pertanyaan?</h3>
-              <p className="text-sm text-white/50 mb-6 max-w-sm mx-auto">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                Masih ada pertanyaan?
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-white/50 mb-6 max-w-sm mx-auto">
                 Tim kami siap membantu wali murid melalui WhatsApp.
               </p>
-
               <a href="https://wa.me/6285183079329"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-gray-900 text-sm font-semibold hover:bg-gray-100 transition-all duration-200 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
+                     bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold
+                     shadow-lg shadow-blue-500/25 dark:shadow-blue-500/10
+                     transition-all duration-200 hover:-translate-y-0.5"
               >
                 <MessageCircle className="w-4 h-4" />
                 Hubungi via WhatsApp
@@ -580,40 +566,8 @@ export default function LandingPage() {
           </RevealCard>
         </div>
       </section>
-      {/* ── Layanan Koperasi ── */}
-      <section id="services" className="relative z-10 py-20 lg:py-28 bg-gray-50 dark:bg-white/[0.015] border-y border-gray-100 dark:border-white/[0.05]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          <SectionHeader
-            eyebrow="Layanan"
-            title="Layanan Koperasi"
-            desc="Memenuhi kebutuhan perlengkapan santri dengan sistem yang memudahkan wali murid."
-          />
 
-          <div className="grid sm:grid-cols-3 gap-5">
-            {SERVICES.map((svc, index) => {
-              const c = accentMap[svc.accent];
-              return (
-                <RevealCard key={svc.title} index={index} direction="up">
-                  <div
-                    className="group rounded-2xl p-6 border border-gray-100 dark:border-white/[0.07] bg-white dark:bg-white/[0.03] hover:border-gray-200 dark:hover:border-blue-500/30 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-none transition-all duration-300"
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-5 ${c.iconBg} ${c.iconText}`}>
-                      {svc.icon}
-                    </div>
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2.5">
-                      {svc.title}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-white/40 leading-relaxed">
-                      {svc.desc}
-                    </p>
-                  </div>
-                </RevealCard>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
       {/* ── Footer ── */}
       <footer id="contact" className="relative z-10 py-14 bg-white dark:bg-[#0a0e1a] border-t border-gray-100 dark:border-white/[0.05]">
