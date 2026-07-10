@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, Edit, Trash2, Eye, Download, Filter, User, RefreshCw, Upload, Printer,
   Search, X, SlidersHorizontal, FileSpreadsheet, CheckCircle, AlertCircle,
-  ChevronLeft, ChevronRight, MoreHorizontal, GraduationCap, MessageCircle
+  ChevronLeft, ChevronRight, MoreHorizontal, GraduationCap, MessageCircle,
+  Link2, Camera, Archive, RotateCcw
 } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Modal from '../components/common/Modal';
@@ -15,6 +16,9 @@ import StudentDetailModal from '../components/features/students/StudentDetailMod
 import ClassPromotionModal from '../components/features/students/ClassPromotionModal';
 import DebouncedInput from '../components/common/DebouncedInput';
 import StatsCarousel from '../components/common/StatsCarousel';
+import SectionCard from '../components/common/SectionCard';
+import PageHeader from '../components/common/PageHeader';
+import EmptyState from '../components/common/EmptyState';
 import {
   getAllStudents,
   createStudent,
@@ -79,6 +83,7 @@ export default function Students() {
   const [bulkStatusTarget, setBulkStatusTarget] = useState('');
   const [showExcelDropdown, setShowExcelDropdown] = useState(false);
   const [showBulkActionsDropdown, setShowBulkActionsDropdown] = useState(false);
+  const [showDataMenuDropdown, setShowDataMenuDropdown] = useState(false);
 
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [resetPinResult, setResetPinResult] = useState(null);
@@ -98,18 +103,23 @@ export default function Students() {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showExcelDropdown || showBulkActionsDropdown) {
+      if (showExcelDropdown || showBulkActionsDropdown || showDataMenuDropdown) {
         const target = event.target;
-        if (!target.closest('.excel-dropdown-container') && !target.closest('.bulk-actions-container')) {
+        if (
+          !target.closest('.excel-dropdown-container') &&
+          !target.closest('.bulk-actions-container') &&
+          !target.closest('.data-menu-dropdown-container')
+        ) {
           setShowExcelDropdown(false);
           setShowBulkActionsDropdown(false);
+          setShowDataMenuDropdown(false);
         }
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showExcelDropdown, showBulkActionsDropdown]);
+  }, [showExcelDropdown, showBulkActionsDropdown, showDataMenuDropdown]);
 
   const loadStudents = async () => {
     try {
@@ -368,6 +378,23 @@ export default function Students() {
     toast.success(`PIN Letter untuk ${selectedStudentsData.length} santri siap dicetak`);
   };
 
+  // TODO: Implement backend/modal untuk fitur-fitur berikut
+  const handleImportGSheets = () => {
+    toast('Import GSheets belum tersedia — segera hadir', { icon: '🔧' });
+  };
+
+  const handleBulkFoto = () => {
+    toast('Bulk Foto via NISN belum tersedia — segera hadir', { icon: '🔧' });
+  };
+
+  const handleArsipSiswa = () => {
+    toast('Arsip Siswa belum tersedia — segera hadir', { icon: '🔧' });
+  };
+
+  const handleResetPoin = () => {
+    toast('Reset Poin semester belum tersedia — segera hadir', { icon: '🔧' });
+  };
+
   const handleBulkUpdate = async (updates) => {
     try {
       setLoading(true);
@@ -549,8 +576,137 @@ export default function Students() {
 
   return (
     <Layout title="Manajemen Santri">
-      <div className="space-y-6 print:hidden">
-        {/* Stats Carousel */}
+      <div className="space-y-4 print:hidden">
+
+        {/* Title + subtitle + header actions (no card wrapper, mirrors reference layout) */}
+        <PageHeader
+          title="Data Santri"
+          subtitle={`Kelola ${totalItems} data santri aktif dalam sistem koperasi.`}
+          action={
+            <>
+              <div className="relative data-menu-dropdown-container">
+                <button
+                  onClick={() => setShowDataMenuDropdown(!showDataMenuDropdown)}
+                  className={`p-2 rounded-lg transition-all relative active:scale-[0.98] ${showDataMenuDropdown
+                    ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300'
+                    }`}
+                  title="Data & Manajemen: Import, Export, Bulk Foto, Arsip, Reset Poin"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                </button>
+
+                {showDataMenuDropdown && (
+                  <div className="absolute left-0 mt-2 w-[min(260px,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 z-50">
+                    <div className="px-3 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                      Data
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowImportModal(true);
+                        setShowDataMenuDropdown(false);
+                      }}
+                      className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-slate-700 dark:text-slate-200 transition-colors text-left"
+                    >
+                      <Upload className="w-4 h-4 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs leading-tight">Import CSV / Excel</div>
+                        <div className="text-[10.5px] leading-snug opacity-70">Unggah data murid massal dari file Excel/CSV</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleImportGSheets();
+                        setShowDataMenuDropdown(false);
+                      }}
+                      className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-sky-50 dark:hover:bg-sky-950/20 text-slate-700 dark:text-slate-200 transition-colors text-left"
+                    >
+                      <Link2 className="w-4 h-4 mt-0.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs leading-tight">Import GSheets</div>
+                        <div className="text-[10.5px] leading-snug opacity-70">Sinkronisasi data otomatis via Google Sheets</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleExport();
+                        setShowDataMenuDropdown(false);
+                      }}
+                      className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-700 dark:text-slate-200 transition-colors text-left"
+                    >
+                      <Download className="w-4 h-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs leading-tight">Export Data</div>
+                        <div className="text-[10.5px] leading-snug opacity-70">Cadangkan seluruh database ke format Excel</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleBulkFoto();
+                        setShowDataMenuDropdown(false);
+                      }}
+                      className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-violet-50 dark:hover:bg-violet-950/20 text-slate-700 dark:text-slate-200 transition-colors text-left"
+                    >
+                      <Camera className="w-4 h-4 mt-0.5 text-violet-600 dark:text-violet-400 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs leading-tight">Bulk Foto</div>
+                        <div className="text-[10.5px] leading-snug opacity-70">Update foto siswa secara massal via NISN</div>
+                      </div>
+                    </button>
+
+                    <div className="px-3 pt-2 pb-1 mt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                      Manajemen
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleArsipSiswa();
+                        setShowDataMenuDropdown(false);
+                      }}
+                      className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-orange-50 dark:hover:bg-orange-950/20 text-slate-700 dark:text-slate-200 transition-colors text-left"
+                    >
+                      <Archive className="w-4 h-4 mt-0.5 text-orange-600 dark:text-orange-400 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs leading-tight">Arsip Siswa</div>
+                        <div className="text-[10.5px] leading-snug opacity-70">Lihat &amp; pulihkan data siswa tidak aktif</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleResetPoin();
+                        setShowDataMenuDropdown(false);
+                      }}
+                      className="w-full flex items-start gap-2.5 px-3 py-2 pb-2.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-700 dark:text-slate-200 transition-colors text-left"
+                    >
+                      <RotateCcw className="w-4 h-4 mt-0.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs leading-tight">Reset Poin</div>
+                        <div className="text-[10.5px] leading-snug opacity-70">Bersihkan semua poin untuk semester baru</div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handlePrintTable}
+                className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 rounded-lg transition-all active:scale-[0.98]"
+                title="Print daftar santri"
+              >
+                <Printer className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="btn-primary flex items-center gap-1.5 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Santri</span>
+              </button>
+            </>
+          }
+        />
+
+        {/* Stats Carousel - floats on page background, no card wrapper (mirrors reference) */}
         {stats && (
           <StatsCarousel
             stats={[
@@ -627,41 +783,95 @@ export default function Students() {
           />
         )}
 
-        {/* Search & Filters Toolbar */}
-        <div className="bg-white dark:bg-slate-900 px-6 py-4 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.05),0_1px_2px_-1px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800/80">
-          <div className="flex flex-col md:flex-row md:items-center gap-4">
-            {/* Left: Search - Dynamic Width */}
-            <div className="flex-1">
+        {/* Search & Filter Card */}
+        <SectionCard padding="sm">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Search */}
+            <div className="w-full sm:w-auto sm:flex-1 sm:min-w-[200px] sm:max-w-xs">
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Search className="w-4 h-4 text-slate-400" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="w-3.5 h-3.5 text-slate-400" />
                 </div>
                 <DebouncedInput
                   type="text"
                   value={searchQuery}
                   onChange={setSearchQuery}
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 text-sm"
-                  placeholder="Cari nama santri, wali, no. HP, atau no. registrasi..."
+                  className="w-full pl-9 pr-8 py-1.5 bg-slate-50/50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 text-xs"
+                  placeholder="Cari nama, wali, no. HP, atau no. registrasi..."
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-r-xl transition-colors"
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-r-lg transition-colors"
                   >
-                    <X className="w-4 h-4 text-slate-400" />
+                    <X className="w-3.5 h-3.5 text-slate-400" />
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Right: Action Buttons */}
-            <div className="flex gap-2 flex-wrap items-center">
+            {/* Quick filter chips: status + gender + sort */}
+            <div className="flex flex-1 items-center gap-1.5 overflow-x-auto min-w-0">
+              {[
+                { label: 'Semua', value: '' },
+                { label: 'Aktif', value: 'active' },
+                { label: 'Lulus', value: 'graduated' },
+                { label: 'Tidak Aktif', value: 'inactive' }
+              ].map((opt) => (
+                <button
+                  key={opt.value || 'all'}
+                  onClick={() => setFilters(prev => ({ ...prev, status: opt.value }))}
+                  className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide transition-all active:scale-[0.98] ${filters.status === opt.value
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300'
+                    }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+
+              <span className="shrink-0 w-px h-3.5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+
+              {[
+                { label: 'Putra', value: 'L' },
+                { label: 'Putri', value: 'P' }
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFilters(prev => ({ ...prev, gender: prev.gender === opt.value ? '' : opt.value }))}
+                  className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide transition-all active:scale-[0.98] ${filters.gender === opt.value
+                    ? opt.value === 'L'
+                      ? 'bg-cyan-600 text-white shadow-sm'
+                      : 'bg-pink-500 text-white shadow-sm'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300'
+                    }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+
+              <select
+                value={filters.sortBy}
+                onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
+                className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 border-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+              >
+                <option value="newest">Terbaru</option>
+                <option value="name-asc">Nama A-Z</option>
+                <option value="name-desc">Nama Z-A</option>
+                <option value="class-asc">Kelas Terendah</option>
+                <option value="class-desc">Kelas Tertinggi</option>
+                <option value="balance-desc">Tagihan Tertinggi</option>
+              </select>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-1.5 flex-wrap items-center shrink-0 ml-auto">
               <button
                 onClick={() => setShowPromotionModal(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100/80 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl transition-all text-sm active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100/80 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-semibold rounded-lg transition-all text-xs active:scale-[0.98]"
                 title="Kenaikan Kelas / Kelulusan"
               >
-                <GraduationCap className="w-4 h-4" />
+                <GraduationCap className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Kenaikan Kelas</span>
               </button>
 
@@ -670,12 +880,12 @@ export default function Students() {
                 <div className="relative bulk-actions-container">
                   <button
                     onClick={() => setShowBulkActionsDropdown(!showBulkActionsDropdown)}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 font-semibold rounded-xl transition-all text-sm active:scale-[0.98] whitespace-nowrap animate-in fade-in"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 font-semibold rounded-lg transition-all text-xs active:scale-[0.98] whitespace-nowrap animate-in fade-in"
                     title="Aksi untuk item terpilih"
                   >
-                    <MoreHorizontal className="w-4 h-4" />
+                    <MoreHorizontal className="w-3.5 h-3.5" />
                     <span>Aksi Massal ({selectedCount})</span>
-                    <ChevronRight className={`w-4 h-4 transition-transform ${showBulkActionsDropdown ? 'rotate-90' : ''}`} />
+                    <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showBulkActionsDropdown ? 'rotate-90' : ''}`} />
                   </button>
                   {showBulkActionsDropdown && (
                     <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 z-50 overflow-hidden">
@@ -723,41 +933,16 @@ export default function Students() {
                 </div>
               )}
 
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="btn-primary flex items-center gap-1.5 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Tambah</span>
-              </button>
-
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold transition-all relative text-sm active:scale-[0.98] ${showFilters
-                  ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
-                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-300'
-                  }`}
-                title="Filter santri berdasarkan status, program, kelas"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                <span>Filter</span>
-                {activeFilterCount() > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {activeFilterCount()}
-                  </span>
-                )}
-              </button>
-
               {/* Excel Actions Dropdown */}
               <div className="relative excel-dropdown-container">
                 <button
                   onClick={() => setShowExcelDropdown(!showExcelDropdown)}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100/80 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 font-semibold rounded-xl transition-all text-sm active:scale-[0.98]"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100/80 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 font-semibold rounded-lg transition-all text-xs active:scale-[0.98]"
                   title="Import, Export, atau Update Massal via Excel"
                 >
-                  <FileSpreadsheet className="w-4 h-4" />
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
                   <span>Excel</span>
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showExcelDropdown ? 'rotate-90' : ''}`} />
+                  <ChevronRight className={`w-3 h-3 transition-transform ${showExcelDropdown ? 'rotate-90' : ''}`} />
                 </button>
                 {showExcelDropdown && (
                   <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 z-50 overflow-hidden">
@@ -804,21 +989,13 @@ export default function Students() {
                 )}
               </div>
 
-              <button
-                onClick={handlePrintTable}
-                className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 rounded-xl transition-all active:scale-[0.98]"
-                title="Print daftar santri"
-              >
-                <Printer className="w-4 h-4" />
-              </button>
-
               {activeFilterCount() > 0 && (
                 <button
                   onClick={resetFilters}
-                  className="p-2 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 rounded-xl transition-all active:scale-[0.98]"
+                  className="p-1.5 bg-rose-50 hover:bg-rose-100/80 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all active:scale-[0.98]"
                   title="Reset Filter"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
@@ -947,7 +1124,9 @@ export default function Students() {
               </div>
             </div>
           )}
-        </div>        {/* Table Content */}
+        </SectionCard>
+
+        {/* Table Content */}
         <div className="table-container">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1016,14 +1195,12 @@ export default function Students() {
                   ))
                 ) : students.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="px-6 py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/40 rounded-full flex items-center justify-center mb-4">
-                          <User className="w-8 h-8 text-slate-400 dark:text-slate-500" />
-                        </div>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-1">Tidak ada data santri</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-450">Silakan tambah santri baru untuk memulai</p>
-                      </div>
+                    <td colSpan="9" className="p-0">
+                      <EmptyState
+                        icon={User}
+                        title="Tidak ada data santri"
+                        subtitle="Silakan tambah santri baru untuk memulai"
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -1264,16 +1441,18 @@ export default function Students() {
       />
 
       {/* Detail Modal */}
-      {showDetailModal && selectedStudent && (
-        <StudentDetailModal
-          student={selectedStudent}
-          onClose={() => {
-            setShowDetailModal(false);
-            setSelectedStudent(null);
-            setResetPinResult(null);
-          }}
-        />
-      )}
+      {
+        showDetailModal && selectedStudent && (
+          <StudentDetailModal
+            student={selectedStudent}
+            onClose={() => {
+              setShowDetailModal(false);
+              setSelectedStudent(null);
+              setResetPinResult(null);
+            }}
+          />
+        )
+      }
 
 
       {/* Reset PIN Confirmation */}
@@ -1313,62 +1492,66 @@ export default function Students() {
       />
 
       {/* Class Promotion Modal */}
-      {showPromotionModal && (
-        <ClassPromotionModal
-          onClose={() => setShowPromotionModal(false)}
-          onSuccess={() => {
-            loadStudents();
-            loadStats();
-          }}
-        />
-      )}
+      {
+        showPromotionModal && (
+          <ClassPromotionModal
+            onClose={() => setShowPromotionModal(false)}
+            onSuccess={() => {
+              loadStudents();
+              loadStats();
+            }}
+          />
+        )
+      }
 
       {/* Bulk Status Update Modal */}
-      {showBulkStatusModal && (
-        <Modal
-          isOpen={showBulkStatusModal}
-          onClose={() => setShowBulkStatusModal(false)}
-          title="Ubah Status Massal"
-          size="sm"
-        >
-          <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-300">
-              Pilih status baru untuk <strong>{selectedIds.length} data santri</strong> yang dipilih:
-            </p>
+      {
+        showBulkStatusModal && (
+          <Modal
+            isOpen={showBulkStatusModal}
+            onClose={() => setShowBulkStatusModal(false)}
+            title="Ubah Status Massal"
+            size="sm"
+          >
+            <div className="space-y-4">
+              <p className="text-gray-600 dark:text-gray-300">
+                Pilih status baru untuk <strong>{selectedIds.length} data santri</strong> yang dipilih:
+              </p>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status Baru</label>
-              <select
-                value={bulkStatusTarget}
-                onChange={(e) => setBulkStatusTarget(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <option value="">-- Pilih Status --</option>
-                <option value="active">Aktif</option>
-                <option value="graduated">Lulus</option>
-                <option value="inactive">Tidak Aktif</option>
-              </select>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status Baru</label>
+                <select
+                  value={bulkStatusTarget}
+                  onChange={(e) => setBulkStatusTarget(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="">-- Pilih Status --</option>
+                  <option value="active">Aktif</option>
+                  <option value="graduated">Lulus</option>
+                  <option value="inactive">Tidak Aktif</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button
+                  onClick={() => setShowBulkStatusModal(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleBulkStatusUpdate}
+                  disabled={!bulkStatusTarget}
+                  className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
             </div>
+          </Modal>
+        )
+      }
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <button
-                onClick={() => setShowBulkStatusModal(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleBulkStatusUpdate}
-                disabled={!bulkStatusTarget}
-                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Simpan Perubahan
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-    </Layout>
+    </Layout >
   );
 }

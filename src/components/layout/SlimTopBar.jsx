@@ -489,9 +489,6 @@ export default function SlimTopBar({ onToggleSidebar, sidebarCollapsed }) {
             {/* Live Clock */}
             <LiveClock />
 
-            {/* Language toggle */}
-            <LanguageDropdown language={language} setLanguage={setLanguage} hidden={searchFocused} />
-
             {/* Asisten AI */}
             <button
               onClick={() => toast('Fitur Asisten AI sedang disiapkan!', { icon: '✨' })}
@@ -506,6 +503,10 @@ export default function SlimTopBar({ onToggleSidebar, sidebarCollapsed }) {
               <span className="hidden sm:inline">Asisten AI</span>
             </button>
 
+            {/* Language toggle */}
+            <LanguageDropdown language={language} setLanguage={setLanguage} hidden={searchFocused} />
+
+            {/* Theme toggle */}
             <IconButton
               onClick={toggleTheme}
               aria-label={isDark ? "Mode Terang" : "Mode Gelap"}

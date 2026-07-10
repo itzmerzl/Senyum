@@ -4,7 +4,7 @@
 @font-face {
   font-family: 'Poppins';
   src: local('JetBrains Mono'),
-       url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwg.woff2) format('woff2');
+    url(https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwg.woff2) format('woff2');
   unicode-range: U+0030-0039;
   font-weight: 400 800;
   font-display: swap;
@@ -21,13 +21,16 @@
   }
 
   body {
-    background-color: #f8fafc; /* slate-50 */
-    color: #0f172a; /* slate-900 */
+    background-color: #f8fafc;
+    /* slate-50 */
+    color: #0f172a;
+    /* slate-900 */
   }
 
   /* Dark mode body background */
   .dark body {
-    background-color: #0b0f19; /* premium deep dark */
+    background-color: #0b0f19;
+    /* premium deep dark */
     color: #f8fafc;
   }
 
@@ -72,6 +75,7 @@
 
   /* Respect reduced motion preference */
   @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
@@ -91,16 +95,19 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1; /* slate-300 */
+    background-color: #cbd5e1;
+    /* slate-300 */
     border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: #94a3b8; /* slate-400 */
+    background-color: #94a3b8;
+    /* slate-400 */
   }
 
   .dark ::-webkit-scrollbar-thumb {
-    background-color: #334155; /* slate-700 */
+    background-color: #334155;
+    /* slate-700 */
   }
 
   .dark ::-webkit-scrollbar-thumb:hover {
@@ -109,40 +116,65 @@
 
   /* Hide scrollbar utility */
   .scrollbar-none {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
+
   .scrollbar-none::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
+    display: none;
+    /* Chrome, Safari and Opera */
   }
 }
 
 @layer components {
 
-  /* Modern Premium Button Styles */
+  /* Modern Premium Button Styles
+     ── Padding diturunkan dari px-4 py-2 ke px-3.5 py-1.5 di seluruh varian
+        biar konsisten sama tombol sekunder di toolbar (Filter, Excel, dst) yang sudah dikecilin. */
   .btn-primary {
-    @apply px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-sm hover:shadow-indigo-100 dark:hover:shadow-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 active:scale-[0.98];
+    @apply px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-sm hover:shadow-indigo-100 dark:hover:shadow-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-slate-500/20 active:scale-[0.98];
+    @apply px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-slate-500/20 active:scale-[0.98];
   }
 
   .btn-success {
-    @apply px-4 py-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-medium rounded-xl transition-all shadow-sm hover:shadow-emerald-100 dark:hover:shadow-none focus:outline-none focus:ring-2 focus:ring-emerald-500/50 active:scale-[0.98];
+    @apply px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-medium rounded-xl transition-all shadow-sm hover:shadow-emerald-100 dark:hover:shadow-none focus:outline-none focus:ring-2 focus:ring-emerald-500/50 active:scale-[0.98];
   }
 
   .btn-danger {
-    @apply px-4 py-2 bg-rose-600 hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-700 text-white font-medium rounded-xl transition-all shadow-sm hover:shadow-rose-100 dark:hover:shadow-none focus:outline-none focus:ring-2 focus:ring-rose-500/50 active:scale-[0.98];
+    @apply px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-700 text-white font-medium rounded-xl transition-all shadow-sm hover:shadow-rose-100 dark:hover:shadow-none focus:outline-none focus:ring-2 focus:ring-rose-500/50 active:scale-[0.98];
   }
 
   .btn-ghost {
-    @apply px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-300 rounded-xl font-medium transition-all active:scale-[0.98];
+    @apply px-3.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-300 rounded-xl font-medium transition-all active:scale-[0.98];
   }
 
-  /* Premium Card Styles - Soft shadows, thin borders */
+  /*
+    Premium Card Styles
+    ── Diubah dari hardcoded `bg-white dark:bg-slate-900` / `border-slate-100 dark:border-slate-800/80`
+       menjadi CSS variable (--color-surface, --color-border) yang sudah didefinisikan di :root / .dark.
+       Efeknya: .card otomatis ikut tema apapun (bukan cuma light/dark) karena baca variable yang sama
+       dipakai Layout.jsx & SectionCard.jsx.
+  */
   .card {
-    @apply bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.05),0_1px_2px_-1px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800/80 p-6;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    @apply rounded-2xl p-6;
+  }
+
+  /* Compact variants — .card default (p-6) dipertahankan untuk kompatibilitas kode lama,
+     tapi SectionCard.jsx & dashboard baru pakai .card-md/.card-sm biar gak kerasa bulky */
+  .card-md {
+    @apply card p-5;
+  }
+
+  .card-sm {
+    @apply card p-4;
   }
 
   .card-hover {
@@ -191,13 +223,21 @@
     @apply bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300;
   }
 
-  /* Table Styles - Elegant borders and hover rows */
+  /*
+    Table Styles
+    ── .table-container & .table-header juga dipindah ke CSS variable, sejalan dengan .card,
+       supaya tabel ikut tema yang sama (bukan hardcoded slate dark: values).
+  */
   .table-container {
-    @apply bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.05),0_1px_2px_-1px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800/80 overflow-hidden;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    @apply rounded-2xl overflow-hidden;
   }
 
   .table-header {
-    @apply bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800/80;
+    background-color: var(--color-surface-alt);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .table-header-cell {
@@ -229,6 +269,7 @@
     0% {
       transform: rotate(0deg);
     }
+
     100% {
       transform: rotate(360deg);
     }
@@ -244,6 +285,7 @@
       opacity: 0;
       transform: translateY(8px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -254,33 +296,73 @@
   .pulse-glow-1 {
     animation: pulse-glow-1 12s ease-in-out infinite;
   }
+
   .pulse-glow-2 {
     animation: pulse-glow-2 15s ease-in-out infinite;
   }
 
   @keyframes pulse-glow-1 {
-    0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.06; }
-    50% { transform: scale(1.15) translate(3%, -3%); opacity: 0.09; }
+
+    0%,
+    100% {
+      transform: scale(1) translate(0, 0);
+      opacity: 0.06;
+    }
+
+    50% {
+      transform: scale(1.15) translate(3%, -3%);
+      opacity: 0.09;
+    }
   }
+
   @keyframes pulse-glow-2 {
-    0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.04; }
-    50% { transform: scale(1.2) translate(-5%, 3%); opacity: 0.07; }
+
+    0%,
+    100% {
+      transform: scale(1) translate(0, 0);
+      opacity: 0.04;
+    }
+
+    50% {
+      transform: scale(1.2) translate(-5%, 3%);
+      opacity: 0.07;
+    }
   }
-  
+
   .dark .pulse-glow-1 {
     animation: pulse-glow-1-dark 12s ease-in-out infinite;
   }
+
   .dark .pulse-glow-2 {
     animation: pulse-glow-2-dark 15s ease-in-out infinite;
   }
 
   @keyframes pulse-glow-1-dark {
-    0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.03; }
-    50% { transform: scale(1.15) translate(3%, -3%); opacity: 0.05; }
+
+    0%,
+    100% {
+      transform: scale(1) translate(0, 0);
+      opacity: 0.03;
+    }
+
+    50% {
+      transform: scale(1.15) translate(3%, -3%);
+      opacity: 0.05;
+    }
   }
+
   @keyframes pulse-glow-2-dark {
-    0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.02; }
-    50% { transform: scale(1.2) translate(-5%, 3%); opacity: 0.04; }
+
+    0%,
+    100% {
+      transform: scale(1) translate(0, 0);
+      opacity: 0.02;
+    }
+
+    50% {
+      transform: scale(1.2) translate(-5%, 3%);
+      opacity: 0.04;
+    }
   }
 
   /* Wobble/Swing for notifications */
@@ -289,12 +371,31 @@
   }
 
   @keyframes wobble {
-    0%, 100% { transform: rotate(0deg); }
-    15% { transform: rotate(-15deg); }
-    30% { transform: rotate(10deg); }
-    45% { transform: rotate(-8deg); }
-    60% { transform: rotate(6deg); }
-    75% { transform: rotate(-3deg); }
+
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+
+    15% {
+      transform: rotate(-15deg);
+    }
+
+    30% {
+      transform: rotate(10deg);
+    }
+
+    45% {
+      transform: rotate(-8deg);
+    }
+
+    60% {
+      transform: rotate(6deg);
+    }
+
+    75% {
+      transform: rotate(-3deg);
+    }
   }
 
   /* Premium Glassmorphism */
@@ -304,12 +405,12 @@
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(226, 232, 240, 0.5);
   }
-  
+
   .dark .glass-panel {
     background-color: rgba(15, 23, 42, 0.8);
     border-color: rgba(30, 41, 59, 0.6);
   }
-  
+
   .glass-dropdown {
     background-color: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(16px);
@@ -317,7 +418,7 @@
     border: 1px solid rgba(226, 232, 240, 0.6);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   }
-  
+
   .dark .glass-dropdown {
     background-color: rgba(15, 23, 42, 0.98);
     border-color: rgba(30, 41, 59, 0.8);
