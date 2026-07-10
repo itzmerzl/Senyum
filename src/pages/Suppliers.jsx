@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, Download, Search, Building2, Phone, Mail, X, SlidersHorizontal, ArrowUpDown, MapPin, CreditCard, FileText, Truck, CheckCircle2 } from 'lucide-react';
-import Layout from '../components/layout/DashboardLayout';
+import Layout from '../components/layout/Layout';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import SupplierForm from '../components/features/suppliers/SupplierForm';

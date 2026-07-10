@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Layout from '../components/layout/DashboardLayout';
+import Layout from '../components/layout/Layout';
 import { Package, Plus, Search, Save, ArrowLeft, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClient from '../utils/apiClient';

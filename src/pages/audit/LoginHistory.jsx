@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { History, RefreshCw, User, Clock, CheckCircle, XCircle, Lock, MapPin } from 'lucide-react';
-import Layout from '../../components/layout/DashboardLayout';
+import Layout from '../../components/layout/Layout';
 import api from '../../utils/apiClient';
 
 export default function LoginHistory() {

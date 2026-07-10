@@ -1,6 +1,6 @@
 import { Construction, ArrowLeft, Clock } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Layout from '../components/layout/DashboardLayout';
+import Layout from '../components/layout/Layout';
 
 export default function ComingSoon() {
   const navigate = useNavigate();

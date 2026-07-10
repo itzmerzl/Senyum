@@ -25,7 +25,7 @@ import {
   Lock,
   Unlock
 } from "lucide-react";
-import Layout from "../components/layout/DashboardLayout";
+import Layout from "../components/layout/Layout";
 import Modal from "../components/common/Modal";
 import CashDrawerModal from "../components/features/pos/CashDrawerModal";
 import api from "../utils/apiClient";

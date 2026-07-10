@@ -5,7 +5,7 @@ import {
   Calendar, Store, BarChart, ArrowRight, AlertTriangle, Clock,
   CheckCircle, XCircle, Award, Zap, RefreshCw
 } from 'lucide-react';
-import Layout from '../components/layout/DashboardLayout';
+import Layout from '../components/layout/Layout';
 import StatsCarousel from '../components/common/StatsCarousel';
 import SectionCard from '../components/common/SectionCard';
 import EmptyState from '../components/common/EmptyState';

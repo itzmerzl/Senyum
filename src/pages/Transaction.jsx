@@ -7,7 +7,7 @@ import {
   CircleCheck, CircleX, Clock, CheckCircle,
   Building2, Upload, AlertCircle
 } from 'lucide-react';
-import Layout from '../components/layout/DashboardLayout';
+import Layout from '../components/layout/Layout';
 import Modal from '../components/common/Modal';
 import {
   getAllTransactions,
@@ -1015,8 +1015,8 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors relative ${showFilters
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700'
                 }`}
             >
               <Filter className="w-4 h-4" />
@@ -1556,26 +1556,26 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             <div className="space-y-4">
               {/* Status Banner */}
               <div className={`rounded-lg p-4 border-2 ${isPending ? 'bg-yellow-50 border-yellow-300' :
-                  isCompleted ? 'bg-green-50 border-green-300' :
-                    isCancelled ? 'bg-red-50 border-red-300' :
-                      isRefunded ? 'bg-purple-50 border-purple-300' :
-                        'bg-gray-50 dark:bg-gray-700 border-gray-300'
+                isCompleted ? 'bg-green-50 border-green-300' :
+                  isCancelled ? 'bg-red-50 border-red-300' :
+                    isRefunded ? 'bg-purple-50 border-purple-300' :
+                      'bg-gray-50 dark:bg-gray-700 border-gray-300'
                 }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`p-3 rounded-full ${isPending ? 'bg-yellow-100' :
-                        isCompleted ? 'bg-green-100' :
-                          isCancelled ? 'bg-red-100' :
-                            'bg-purple-100'
+                      isCompleted ? 'bg-green-100' :
+                        isCancelled ? 'bg-red-100' :
+                          'bg-purple-100'
                       }`}>
                       {statusInfo.icon}
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">Status Transaksi</p>
                       <p className={`text-xl font-bold ${isPending ? 'text-yellow-700' :
-                          isCompleted ? 'text-green-700' :
-                            isCancelled ? 'text-red-700' :
-                              'text-purple-700'
+                        isCompleted ? 'text-green-700' :
+                          isCancelled ? 'text-red-700' :
+                            'text-purple-700'
                         }`}>
                         {statusInfo.label}
                       </p>
@@ -1642,8 +1642,8 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-medium mb-1">Pelanggan</p>
                     <p className="font-medium text-gray-900 dark:text-white">{selectedTransaction.customerName}</p>
                     <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${selectedTransaction.customerType === 'student'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700'
                       }`}>
                       {selectedTransaction.customerType === 'student' ? 'Santri' : 'Umum'}
                     </span>
@@ -2125,14 +2125,14 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     });
                   }}
                   className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-green-500 text-lg font-bold transition-colors ${(() => {
-                      const confirmed = parseFloat(confirmPaymentData.confirmedAmount) || 0;
-                      const expected = parseFloat(selectedTransaction.total) || 0;
-                      const diff = Math.abs(confirmed - expected);
+                    const confirmed = parseFloat(confirmPaymentData.confirmedAmount) || 0;
+                    const expected = parseFloat(selectedTransaction.total) || 0;
+                    const diff = Math.abs(confirmed - expected);
 
-                      if (diff < 0.01) return 'border-green-300 bg-green-50';
-                      if (diff > 0) return 'border-orange-300 bg-orange-50';
-                      return 'border-gray-300';
-                    })()
+                    if (diff < 0.01) return 'border-green-300 bg-green-50';
+                    if (diff > 0) return 'border-orange-300 bg-orange-50';
+                    return 'border-gray-300';
+                  })()
                     }`}
                   placeholder="0"
                   step="0.01"

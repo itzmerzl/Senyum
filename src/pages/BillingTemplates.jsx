@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { FileText, Plus, Edit2, Trash2, Users, GraduationCap, RefreshCw, X, Check, Settings, Filter, Search, Copy, Package, Download, LayoutList, LayoutGrid, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, CircleDollarSign, AlertCircle, Archive } from 'lucide-react';
 import StatsCarousel from '../components/common/StatsCarousel';
-import Layout from '../components/layout/DashboardLayout';
+import Layout from '../components/layout/Layout';
 import Modal from '../components/common/Modal';
 import Skeleton from '../components/common/Skeleton';
 import DebouncedInput from '../components/common/DebouncedInput';

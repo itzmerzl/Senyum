@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Package, Plus, Edit2, Trash2, X, Search, Check, AlertCircle, ShoppingBag, ArrowRight, Layers, LayoutGrid, List, Copy, TrendingUp, Tag, Calculator } from 'lucide-react';
 import StatsCarousel from '../components/common/StatsCarousel';
-import Layout from '../components/layout/DashboardLayout';
+import Layout from '../components/layout/Layout';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import api from '../utils/apiClient';
