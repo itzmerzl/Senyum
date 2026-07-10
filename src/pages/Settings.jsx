@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/DashboardLayout';
 import {
     Store,
     Receipt,
@@ -50,8 +50,8 @@ const Settings = () => {
                                             key={tab.id}
                                             onClick={() => setActiveTab(tab.id)}
                                             className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${isActive
-                                                    ? 'bg-blue-50 text-blue-600'
-                                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-700 hover:text-gray-900 dark:text-white'
+                                                ? 'bg-blue-50 text-blue-600'
+                                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-700 hover:text-gray-900 dark:text-white'
                                                 }`}
                                         >
                                             <Icon className={`w-5 h-5 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />

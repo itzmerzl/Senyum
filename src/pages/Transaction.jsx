@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
-import { 
-  Receipt, Search, Download, Eye, X, Calendar, 
-  CreditCard, Banknote, Smartphone, Filter, 
+import {
+  Receipt, Search, Download, Eye, X, Calendar,
+  CreditCard, Banknote, Smartphone, Filter,
   ChevronDown, ChevronUp, ShoppingCart, RefreshCw,
   TrendingUp, DollarSign, RotateCcw, Printer,
   CircleCheck, CircleX, Clock, CheckCircle,
   Building2, Upload, AlertCircle
 } from 'lucide-react';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/DashboardLayout';
 import Modal from '../components/common/Modal';
-import { 
-  getAllTransactions, 
+import {
+  getAllTransactions,
   getTransactionStats,
   exportTransactions,
   refundTransaction,
@@ -29,7 +29,7 @@ export default function Transaction() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [receiptToPrint, setReceiptToPrint] = useState(null);
-  
+
   // Filters
   const [filters, setFilters] = useState({
     startDate: '',
@@ -39,7 +39,7 @@ export default function Transaction() {
     status: '',
     itemsPerPage: 25
   });
-  
+
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundData, setRefundData] = useState({
     refundAmount: 0,
@@ -58,7 +58,7 @@ export default function Transaction() {
 
   const [showFilters, setShowFilters] = useState(false);
   const [expandedTransaction, setExpandedTransaction] = useState(null);
-  
+
   // Modal
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
@@ -69,11 +69,11 @@ export default function Transaction() {
     loadTransactions();
     loadStats();
   }, []);
-  
+
   useEffect(() => {
     filterTransactions();
   }, [searchQuery, filters, transactions]);
-  
+
   const loadTransactions = async () => {
     try {
       setLoading(true);
@@ -86,7 +86,7 @@ export default function Transaction() {
       setLoading(false);
     }
   };
-  
+
   const loadStats = async () => {
     try {
       const data = await getTransactionStats();
@@ -95,54 +95,54 @@ export default function Transaction() {
       console.error(error);
     }
   };
-  
+
   const filterTransactions = () => {
     let result = [...transactions];
-    
+
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(t => 
+      result = result.filter(t =>
         t.invoiceNumber.toLowerCase().includes(query) ||
         t.customerName.toLowerCase().includes(query) ||
         (t.cashierName && t.cashierName.toLowerCase().includes(query))
       );
     }
-    
+
     // Date range filter
     if (filters.startDate) {
-      result = result.filter(t => 
+      result = result.filter(t =>
         new Date(t.transactionDate) >= new Date(filters.startDate)
       );
     }
     if (filters.endDate) {
       const endDate = new Date(filters.endDate);
       endDate.setHours(23, 59, 59, 999);
-      result = result.filter(t => 
+      result = result.filter(t =>
         new Date(t.transactionDate) <= endDate
       );
     }
-    
+
     // Payment method filter
     if (filters.paymentMethod) {
       result = result.filter(t => t.paymentMethod === filters.paymentMethod);
     }
-    
+
     // Customer type filter
     if (filters.customerType) {
       result = result.filter(t => t.customerType === filters.customerType);
     }
-    
+
     // Status filter
     if (filters.status) {
       result = result.filter(t => t.status === filters.status);
     }
-    
+
     // Limit items
     if (filters.itemsPerPage < 1000) {
       result = result.slice(0, filters.itemsPerPage);
     }
-    
+
     setFilteredTransactions(result);
   };
 
@@ -191,10 +191,10 @@ export default function Transaction() {
 
   const handleConfirmPayment = async () => {
     if (!selectedTransaction) return;
-    
+
     try {
       setConfirmingPayment(true);
-      
+
       // 1. Prepare update data
       const updateData = {
         status: 'completed',
@@ -203,15 +203,15 @@ export default function Transaction() {
         confirmationNotes: confirmPaymentData.notes,
         confirmedAmount: confirmPaymentData.confirmedAmount || selectedTransaction.total
       };
-      
+
       // 2. Add proof image if exists
       if (confirmPaymentData.proofImage) {
         updateData.paymentProofImageBase64 = confirmPaymentData.proofImageBase64;
       }
-      
+
       // 3. Update transaction
       await updateTransaction(selectedTransaction.id, updateData);
-      
+
       // 4. Update payment method balance (optional, bisa error tapi ga masalah)
       try {
         const method = paymentMethods.find(m => m.code === selectedTransaction.paymentMethod);
@@ -227,11 +227,11 @@ export default function Transaction() {
         console.error('Error updating payment method balance:', error);
         // Tidak throw error, karena transaksi tetap berhasil
       }
-      
+
       toast.success('Pembayaran berhasil dikonfirmasi!', {
         duration: 4000,
       });
-      
+
       // 5. Reset states
       setShowConfirmPaymentModal(false);
       setShowDetailModal(false);
@@ -242,13 +242,13 @@ export default function Transaction() {
         notes: '',
         confirmedAmount: 0
       });
-      
+
       // 6. Reload data
       await Promise.all([
         loadTransactions(),
         loadStats()
       ]);
-      
+
     } catch (error) {
       console.error('Error confirming payment:', error);
       toast.error(error.message || 'Gagal mengkonfirmasi pembayaran');
@@ -260,17 +260,17 @@ export default function Transaction() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Ukuran file maksimal 5MB');
       return;
     }
-    
+
     if (!file.type.startsWith('image/')) {
       toast.error('File harus berupa gambar');
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setConfirmPaymentData(prev => ({
@@ -294,11 +294,11 @@ export default function Transaction() {
         refundMethod: refundData.refundMethod,
         status: 'completed'
       });
-      
+
       refundData.items.forEach(item => {
         updateProductStock(item.productId, item.quantity);
       });
-      
+
       if (refundData.refundMethod === 'cash') {
         const cashMethod = await getPaymentMethodByCode('cash');
         await updatePaymentMethodBalance(cashMethod.id, {
@@ -308,12 +308,12 @@ export default function Transaction() {
           notes: `Refund transaksi ${selectedTransaction.invoiceNumber}`
         });
       }
-      
+
       await updateTransaction(selectedTransaction.id, {
         status: 'refunded',
         refundAmount: refundData.totalRefund
       });
-      
+
       toast.success('Refund berhasil diproses');
     } catch (error) {
       toast.error(error.message);
@@ -331,7 +331,7 @@ export default function Transaction() {
       toast.error(error.message);
     }
   };
-  
+
   const handleExport = async () => {
     try {
       const data = await exportTransactions({
@@ -340,7 +340,7 @@ export default function Transaction() {
         paymentMethod: filters.paymentMethod,
         status: filters.status
       });
-      
+
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Transaksi');
@@ -351,7 +351,7 @@ export default function Transaction() {
       console.error(error);
     }
   };
-  
+
   // Helper untuk format Rupiah tanpa "Rp" di depan
   const formatRp = (amount) => {
     if (amount === undefined || amount === null) return '0';
@@ -360,17 +360,17 @@ export default function Transaction() {
       maximumFractionDigits: 0
     }).format(amount);
   };
-  
+
   // Fungsi untuk membuka preview struk
   const openReceiptPreview = (transaction) => {
     setReceiptToPrint(transaction);
     setShowReceiptPreview(true);
   };
-  
+
   // Print function to generate and print receipt
   const handlePrintReceipt = (transaction) => {
     const printWindow = window.open('', '_blank', 'width=302,height=500');
-    
+
     // Tambah fungsi ini bareng padRight & padLeft
     const padCenter = (text, width) => {
       const str = String(text);
@@ -385,48 +385,48 @@ export default function Transaction() {
       const str = String(text);
       return str + ' '.repeat(Math.max(0, width - str.length));
     };
-    
+
     const padLeft = (text, width) => {
       const str = String(text);
       return ' '.repeat(Math.max(0, width - str.length)) + str;
     };
-    
+
     // Fungsi buat baris dengan alignment yang benar
     const createRow = (label, value, isBoldValue = false, labelWidth = 15) => {
       const TOTAL_WIDTH = 32; // Lebar thermal 58mm = sekitar 32 karakter
       const valueStyle = isBoldValue ? 'font-weight: bold;' : '';
-      
+
       // Potong label kalau kepanjangan
       const trimmedLabel = label.length > labelWidth ? label.substring(0, labelWidth) : label;
       const paddedLabel = padRight(trimmedLabel, labelWidth);
-      
+
       // Value di kanan
       const valueWidth = TOTAL_WIDTH - labelWidth;
       const paddedValue = padLeft(value || '', valueWidth);
-      
+
       return `<div style="font-size: 9pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 0;">${paddedLabel}${paddedValue}</div>`;
     };
-    
+
     // Items formatting
     const itemsHtml = transaction.items.map(item => {
       const TOTAL_WIDTH = 32;
-      
+
       // Nama produk (bold, baris sendiri)
       const itemNameRow = `<div style="font-size: 9pt; font-weight: bold; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 1px 0 0 0; padding: 0;">${item.productName}</div>`;
-      
+
       // Detail: "1 x Rp16.000" (kiri) dan "Rp16.000" (kanan)
       const leftText = `${item.quantity} x Rp${formatRp(item.price)}`;
       const rightText = `Rp${formatRp(item.subtotal)}`;
-      
+
       // Hitung padding
       const paddingNeeded = TOTAL_WIDTH - leftText.length - rightText.length;
       const padding = ' '.repeat(Math.max(0, paddingNeeded));
-      
+
       const itemDetailRow = `<div style="font-size: 8pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0 0 2px 0; padding: 0;">${leftText}${padding}<span style="font-weight: bold;">${rightText}</span></div>`;
-      
+
       return itemNameRow + itemDetailRow;
     }).join('');
-    
+
     const formattedDate = new Date(transaction.transactionDate).toLocaleString('id-ID', {
       day: '2-digit',
       month: '2-digit',
@@ -598,125 +598,125 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
       </body>
       </html>
     `;
-    
+
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   };
 
   const handlePrintPendingInvoice = (transaction) => {
-      const printWindow = window.open('', '_blank', 'width=302,height=500');
-      
-      if (!printWindow) {
-        toast.error('Pop-up diblokir! Izinkan pop-up untuk print.');
-        return;
+    const printWindow = window.open('', '_blank', 'width=302,height=500');
+
+    if (!printWindow) {
+      toast.error('Pop-up diblokir! Izinkan pop-up untuk print.');
+      return;
+    }
+
+    // Helper functions
+    const padCenter = (text, width) => {
+      const str = String(text);
+      const totalPadding = Math.max(0, width - str.length);
+      const leftPadding = Math.floor(totalPadding / 2);
+      const rightPadding = totalPadding - leftPadding;
+      return ' '.repeat(leftPadding) + str + ' '.repeat(rightPadding);
+    };
+
+    const padRight = (text, width) => {
+      const str = String(text);
+      return str + ' '.repeat(Math.max(0, width - str.length));
+    };
+
+    const padLeft = (text, width) => {
+      const str = String(text);
+      return ' '.repeat(Math.max(0, width - str.length)) + str;
+    };
+
+    const createRow = (label, value, isBoldValue = false, labelWidth = 15) => {
+      const TOTAL_WIDTH = 32;
+      const valueStyle = isBoldValue ? 'font-weight: bold;' : '';
+
+      const trimmedLabel = label.length > labelWidth ? label.substring(0, labelWidth) : label;
+      const paddedLabel = padRight(trimmedLabel, labelWidth);
+
+      const valueWidth = TOTAL_WIDTH - labelWidth;
+      const paddedValue = padLeft(value || '', valueWidth);
+
+      return `<div style="font-size: 9pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 0; ${valueStyle}">${paddedLabel}${paddedValue}</div>`;
+    };
+
+    // Content builder functions
+    const buildHeader = () => {
+      const lines = [];
+      lines.push(padCenter('KOPERASI SENYUMMU', 32));
+      lines.push(padCenter('Jln. Pemandian No. 88', 32));
+      lines.push(padCenter('Telp: 085183079329', 32));
+      return lines.join('\n');
+    };
+
+    const buildTransactionInfo = (transaction, formattedDate) => {
+      const lines = [];
+      lines.push(padCenter('INVOICE PENDING', 32));
+      lines.push(createRow('No Invoice', transaction.invoiceNumber, true));
+      lines.push(createRow('Tanggal', formattedDate));
+      lines.push(createRow('Kasir', transaction.cashierName || 'Admin'));
+      lines.push(createRow('Pelanggan', transaction.customerName || 'Umum'));
+      return lines.join('\n');
+    };
+
+    const buildTotals = (transaction) => {
+      const lines = [];
+      lines.push(createRow('Sub Total', `Rp${formatRp(transaction.subtotal)}`));
+      if (transaction.tax > 0) {
+        lines.push(createRow('Pajak', `Rp${formatRp(transaction.tax)}`));
       }
-      
-      // Helper functions
-      const padCenter = (text, width) => {
-        const str = String(text);
-        const totalPadding = Math.max(0, width - str.length);
-        const leftPadding = Math.floor(totalPadding / 2);
-        const rightPadding = totalPadding - leftPadding;
-        return ' '.repeat(leftPadding) + str + ' '.repeat(rightPadding);
-      };
-  
-      const padRight = (text, width) => {
-        const str = String(text);
-        return str + ' '.repeat(Math.max(0, width - str.length));
-      };
-      
-      const padLeft = (text, width) => {
-        const str = String(text);
-        return ' '.repeat(Math.max(0, width - str.length)) + str;
-      };
-      
-      const createRow = (label, value, isBoldValue = false, labelWidth = 15) => {
+      if (transaction.discount > 0) {
+        lines.push(createRow('Diskon', `-Rp${formatRp(transaction.discount)}`));
+      }
+      lines.push(createRow('Total Tagihan', `Rp${formatRp(transaction.total)}`, true));
+      return lines.join('\n');
+    };
+
+    const buildPaymentInstructions = (transaction) => {
+      if (transaction.paymentMethod === 'bank') {
+        const lines = [];
+        lines.push(`Transfer ke ${transaction.paymentMethodName || transaction.paymentMethod}`);
+        lines.push(`No. Rek: ${transaction.bankAccount || '-'}`);
+        lines.push(`a.n. ${transaction.accountName || 'Koperasi SenyumMu'}`);
+        lines.push(`Sejumlah: Rp${formatRp(transaction.total)}`);
+        return lines.join('\n'); // Gunakan \n untuk baris baru, bukan spasi
+      }
+      return '';
+    };
+
+    const buildItemsHtml = (transaction) => {
+      return transaction.items.map(item => {
         const TOTAL_WIDTH = 32;
-        const valueStyle = isBoldValue ? 'font-weight: bold;' : '';
-        
-        const trimmedLabel = label.length > labelWidth ? label.substring(0, labelWidth) : label;
-        const paddedLabel = padRight(trimmedLabel, labelWidth);
-        
-        const valueWidth = TOTAL_WIDTH - labelWidth;
-        const paddedValue = padLeft(value || '', valueWidth);
-        
-        return `<div style="font-size: 9pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 0; ${valueStyle}">${paddedLabel}${paddedValue}</div>`;
-      };
-      
-      // Content builder functions
-      const buildHeader = () => {
-        const lines = [];
-        lines.push(padCenter('KOPERASI SENYUMMU', 32));
-        lines.push(padCenter('Jln. Pemandian No. 88', 32));
-        lines.push(padCenter('Telp: 085183079329', 32));
-        return lines.join('\n');
-      };
-  
-      const buildTransactionInfo = (transaction, formattedDate) => {
-        const lines = [];
-        lines.push(padCenter('INVOICE PENDING', 32));
-        lines.push(createRow('No Invoice', transaction.invoiceNumber, true));
-        lines.push(createRow('Tanggal', formattedDate));
-        lines.push(createRow('Kasir', transaction.cashierName || 'Admin'));
-        lines.push(createRow('Pelanggan', transaction.customerName || 'Umum'));
-        return lines.join('\n');
-      };
-  
-      const buildTotals = (transaction) => {
-        const lines = [];
-        lines.push(createRow('Sub Total', `Rp${formatRp(transaction.subtotal)}`));
-        if (transaction.tax > 0) {
-          lines.push(createRow('Pajak', `Rp${formatRp(transaction.tax)}`));
-        }
-        if (transaction.discount > 0) {
-          lines.push(createRow('Diskon', `-Rp${formatRp(transaction.discount)}`));
-        }
-        lines.push(createRow('Total Tagihan', `Rp${formatRp(transaction.total)}`, true));
-        return lines.join('\n');
-      };
-  
-      const buildPaymentInstructions = (transaction) => {
-        if (transaction.paymentMethod === 'bank') {
-          const lines = [];
-          lines.push(`Transfer ke ${transaction.paymentMethodName || transaction.paymentMethod}`);
-          lines.push(`No. Rek: ${transaction.bankAccount || '-'}`);
-          lines.push(`a.n. ${transaction.accountName || 'Koperasi SenyumMu'}`);
-          lines.push(`Sejumlah: Rp${formatRp(transaction.total)}`);
-          return lines.join('\n'); // Gunakan \n untuk baris baru, bukan spasi
-        }
-        return '';
-      };
-  
-      const buildItemsHtml = (transaction) => {
-        return transaction.items.map(item => {
-          const TOTAL_WIDTH = 32;
-          
-          const itemNameRow = `<div style="font-size: 9pt; font-weight: bold; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 1px 0 0 0; padding: 0;">${item.productName}</div>`;
-          
-          const leftText = `${item.quantity} x Rp${formatRp(item.price)}`;
-          const rightText = `Rp${formatRp(item.subtotal)}`;
-          
-          const paddingNeeded = TOTAL_WIDTH - leftText.length - rightText.length;
-          const padding = ' '.repeat(Math.max(0, paddingNeeded));
-          
-          const itemDetailRow = `<div style="font-size: 8pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0 0 2px 0; padding: 0;">${leftText}${padding}<span style="font-weight: bold;">${rightText}</span></div>`;
-          
-          return itemNameRow + itemDetailRow;
-        }).join('');
-      };
-      
-      const formattedDate = new Date(transaction.transactionDate).toLocaleString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-  
-      const paymentMethodName = transaction.paymentMethodName || capitalizeFirst(transaction.paymentMethod);
-      const itemsHtml = buildItemsHtml(transaction);
-  
-      const htmlContent = `
+
+        const itemNameRow = `<div style="font-size: 9pt; font-weight: bold; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 1px 0 0 0; padding: 0;">${item.productName}</div>`;
+
+        const leftText = `${item.quantity} x Rp${formatRp(item.price)}`;
+        const rightText = `Rp${formatRp(item.subtotal)}`;
+
+        const paddingNeeded = TOTAL_WIDTH - leftText.length - rightText.length;
+        const padding = ' '.repeat(Math.max(0, paddingNeeded));
+
+        const itemDetailRow = `<div style="font-size: 8pt; line-height: 1.3; font-family: 'Courier New', Courier, monospace; margin: 0 0 2px 0; padding: 0;">${leftText}${padding}<span style="font-weight: bold;">${rightText}</span></div>`;
+
+        return itemNameRow + itemDetailRow;
+      }).join('');
+    };
+
+    const formattedDate = new Date(transaction.transactionDate).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const paymentMethodName = transaction.paymentMethodName || capitalizeFirst(transaction.paymentMethod);
+    const itemsHtml = buildItemsHtml(transaction);
+
+    const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -866,11 +866,11 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
         </body>
         </html>
           `;
-        
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
-  
+
   const resetFilters = () => {
     setFilters({
       startDate: '',
@@ -882,7 +882,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
     });
     setSearchQuery('');
   };
-  
+
   const activeFilterCount = () => {
     let count = 0;
     if (filters.startDate) count++;
@@ -893,7 +893,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
     if (searchQuery) count++;
     return count;
   };
-  
+
   const getPaymentIcon = (method) => {
     switch (method) {
       case 'cash': return <DollarSign className="w-4 h-4" />;
@@ -902,7 +902,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
       default: return <Banknote className="w-4 h-4" />;
     }
   };
-  
+
   const getPaymentColor = (method) => {
     switch (method) {
       case 'cash': return 'bg-green-100 text-green-800';
@@ -918,7 +918,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
       default: return <CircleX className="w-4 h-4" />;
     }
   };
-  
+
   return (
     <Layout>
       {/* Stats Cards */}
@@ -935,7 +935,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -960,7 +960,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -972,7 +972,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -986,7 +986,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
           </div>
         </div>
       )}
-      
+
       {/* Toolbar */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
         <div className="flex flex-col md:flex-row gap-3 mb-4">
@@ -1010,15 +1010,14 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
               </button>
             )}
           </div>
-          
+
           <div className="flex gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors relative ${
-                showFilters 
-                  ? 'bg-blue-600 text-white' 
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors relative ${showFilters
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700'
-              }`}
+                }`}
             >
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline">Filter</span>
@@ -1028,7 +1027,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 </span>
               )}
             </button>
-            
+
             <button
               onClick={handleExport}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
@@ -1038,7 +1037,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             </button>
           </div>
         </div>
-        
+
         {/* Advanced Filters */}
         {showFilters && (
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -1055,7 +1054,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   <Calendar className="w-3 h-3 inline mr-1" />
@@ -1068,7 +1067,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Metode Bayar</label>
                 <select
@@ -1082,7 +1081,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   <option value="qris">QRIS</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Tipe Pelanggan</label>
                 <select
@@ -1095,7 +1094,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   <option value="student">Santri</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
                 <select
@@ -1110,7 +1109,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   <option value="refunded">Refund</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Tampilkan</label>
                 <select
@@ -1125,7 +1124,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 </select>
               </div>
             </div>
-            
+
             {activeFilterCount() > 0 && (
               <button
                 onClick={resetFilters}
@@ -1138,7 +1137,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
           </div>
         )}
       </div>
-      
+
       {/* Transactions Table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -1177,9 +1176,8 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
 
                   return (
                     <>
-                      <tr key={transaction.id} className={`hover:bg-gray-50 dark:bg-gray-700 ${
-                        transaction.status === 'pending' ? 'bg-yellow-50/30' : ''
-                      }`}>
+                      <tr key={transaction.id} className={`hover:bg-gray-50 dark:bg-gray-700 ${transaction.status === 'pending' ? 'bg-yellow-50/30' : ''
+                        }`}>
                         <td className="px-4 py-3">
                           <p className="font-medium text-blue-600">{transaction.invoiceNumber}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-300">
@@ -1294,7 +1292,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                           </div>
                         </td>
                       </tr>
-                      
+
                       {/* Expanded Row */}
                       {isExpanded && (
                         <tr className="bg-gray-50 dark:bg-gray-700">
@@ -1336,7 +1334,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             </tbody>
           </table>
         </div>
-        
+
         {filteredTransactions.length > 0 && (
           <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -1345,7 +1343,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
           </div>
         )}
       </div>
-      
+
       {/* Modal Preview Struk */}
       <Modal
         isOpen={showReceiptPreview}
@@ -1361,9 +1359,9 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
             hour: '2-digit',
             minute: '2-digit'
           });
-          
+
           const isPending = receiptToPrint.status === 'pending';
-          
+
           return (
             <div className="space-y-4">
               {/* Preview Struk */}
@@ -1374,19 +1372,19 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   <p className="text-xs">Jln. Pemandian No. 88</p>
                   <p className="text-xs">Telp: 085183079329</p>
                 </div>
-                
+
                 {/* Divider */}
                 <div className="text-center text-xs mb-1">-----------------------------------------------------</div>
-                
+
                 {/* Status Badge untuk Pending */}
                 {isPending && (
                   <div className="text-center">
                     <span className="text-xs font-bold">INVOICE PENDING</span>
                   </div>
                 )}
-                
+
                 {/* Transaction Info */}
-                
+
                 <div className="text-xs space-y-1 mb-3">
                   <div className="flex justify-between">
                     <span>No Invoice</span>
@@ -1405,10 +1403,10 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     <span>{receiptToPrint.customerName || 'Umum'}</span>
                   </div>
                 </div>
-                
+
                 {/* Divider */}
                 <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
-                
+
                 {/* Items */}
                 <div className="mb-3">
                   {receiptToPrint.items?.map((item, idx) => (
@@ -1421,10 +1419,10 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Divider */}
                 <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
-                
+
                 {/* Summary */}
                 <div className="text-xs space-y-1 mb-2">
                   <div className="flex justify-between">
@@ -1444,16 +1442,16 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     </div>
                   )}
                 </div>
-                
+
                 {/* Total */}
                 <div className="flex justify-between text-xs mb-2">
                   <span>{isPending ? 'Total Tagihan' : 'Total'}</span>
                   <span className="font-bold">Rp{formatRp(receiptToPrint.total)}</span>
                 </div>
-                
+
                 {/* Divider */}
                 <div className="text-center text-xs mb-2">-----------------------------------------------------</div>
-                
+
                 {/* Payment Info - Berbeda untuk Pending vs Completed */}
                 {isPending ? (
                   // Instruksi Pembayaran untuk Pending
@@ -1493,10 +1491,10 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     )}
                   </div>
                 )}
-                
+
                 {/* Divider */}
                 <div className="text-center text-xs mb-3">-----------------------------------------------------</div>
-                
+
                 {/* Footer - Berbeda untuk Pending vs Completed */}
                 <div className="text-center text-xs">
                   {isPending ? (
@@ -1539,7 +1537,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
           );
         })()}
       </Modal>
-      
+
       {/* Detail Transaction Modal */}
       <Modal
         isOpen={showDetailModal}
@@ -1553,35 +1551,32 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
           const isCompleted = selectedTransaction.status === 'completed';
           const isCancelled = selectedTransaction.status === 'cancelled';
           const isRefunded = selectedTransaction.status === 'refunded';
-          
+
           return (
             <div className="space-y-4">
               {/* Status Banner */}
-              <div className={`rounded-lg p-4 border-2 ${
-                isPending ? 'bg-yellow-50 border-yellow-300' :
-                isCompleted ? 'bg-green-50 border-green-300' :
-                isCancelled ? 'bg-red-50 border-red-300' :
-                isRefunded ? 'bg-purple-50 border-purple-300' :
-                'bg-gray-50 dark:bg-gray-700 border-gray-300'
-              }`}>
+              <div className={`rounded-lg p-4 border-2 ${isPending ? 'bg-yellow-50 border-yellow-300' :
+                  isCompleted ? 'bg-green-50 border-green-300' :
+                    isCancelled ? 'bg-red-50 border-red-300' :
+                      isRefunded ? 'bg-purple-50 border-purple-300' :
+                        'bg-gray-50 dark:bg-gray-700 border-gray-300'
+                }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-full ${
-                      isPending ? 'bg-yellow-100' :
-                      isCompleted ? 'bg-green-100' :
-                      isCancelled ? 'bg-red-100' :
-                      'bg-purple-100'
-                    }`}>
+                    <div className={`p-3 rounded-full ${isPending ? 'bg-yellow-100' :
+                        isCompleted ? 'bg-green-100' :
+                          isCancelled ? 'bg-red-100' :
+                            'bg-purple-100'
+                      }`}>
                       {statusInfo.icon}
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">Status Transaksi</p>
-                      <p className={`text-xl font-bold ${
-                        isPending ? 'text-yellow-700' :
-                        isCompleted ? 'text-green-700' :
-                        isCancelled ? 'text-red-700' :
-                        'text-purple-700'
-                      }`}>
+                      <p className={`text-xl font-bold ${isPending ? 'text-yellow-700' :
+                          isCompleted ? 'text-green-700' :
+                            isCancelled ? 'text-red-700' :
+                              'text-purple-700'
+                        }`}>
                         {statusInfo.label}
                       </p>
                       {isPending && (
@@ -1591,7 +1586,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                       )}
                     </div>
                   </div>
-                  
+
                   {isPending && (
                     <div className="flex gap-2">
                       <button
@@ -1618,7 +1613,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   )}
                 </div>
               </div>
-              
+
               {/* Header Info */}
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -1646,11 +1641,10 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-medium mb-1">Pelanggan</p>
                     <p className="font-medium text-gray-900 dark:text-white">{selectedTransaction.customerName}</p>
-                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                      selectedTransaction.customerType === 'student' 
-                        ? 'bg-blue-100 text-blue-700' 
+                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${selectedTransaction.customerType === 'student'
+                        ? 'bg-blue-100 text-blue-700'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700'
-                    }`}>
+                      }`}>
                       {selectedTransaction.customerType === 'student' ? 'Santri' : 'Umum'}
                     </span>
                   </div>
@@ -1660,7 +1654,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   </div>
                 </div>
               </div>
-              
+
               {/* Payment Method & Status */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -1679,7 +1673,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-medium mb-2">Status Pembayaran</p>
                   <span className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold ${statusInfo.color}`}>
@@ -1691,62 +1685,52 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
 
               {/* Payment Details for Bank Transfer */}
               {(isPending || isCompleted) && selectedTransaction.paymentDetails && (
-                <div className={`rounded-lg border-2 p-4 ${
-                  isPending ? 'bg-yellow-50 border-yellow-300' : 'bg-blue-50 border-blue-300'
-                }`}>
+                <div className={`rounded-lg border-2 p-4 ${isPending ? 'bg-yellow-50 border-yellow-300' : 'bg-blue-50 border-blue-300'
+                  }`}>
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      isPending ? 'bg-yellow-100' : 'bg-blue-100'
-                    }`}>
-                      <Building2 className={`w-5 h-5 ${
-                        isPending ? 'text-yellow-600' : 'text-blue-600'
-                      }`} />
+                    <div className={`p-2 rounded-lg ${isPending ? 'bg-yellow-100' : 'bg-blue-100'
+                      }`}>
+                      <Building2 className={`w-5 h-5 ${isPending ? 'text-yellow-600' : 'text-blue-600'
+                        }`} />
                     </div>
                     <div className="flex-1">
-                      <p className={`text-sm font-bold mb-2 ${
-                        isPending ? 'text-yellow-800' : 'text-blue-800'
-                      }`}>
+                      <p className={`text-sm font-bold mb-2 ${isPending ? 'text-yellow-800' : 'text-blue-800'
+                        }`}>
                         Informasi Transfer Bank
                       </p>
                       <div className="space-y-1.5">
                         {selectedTransaction.paymentDetails.bankAccount && (
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-medium ${
-                              isPending ? 'text-yellow-600' : 'text-blue-600'
-                            }`}>
+                            <span className={`text-xs font-medium ${isPending ? 'text-yellow-600' : 'text-blue-600'
+                              }`}>
                               No. Rekening:
                             </span>
-                            <span className={`text-sm font-bold ${
-                              isPending ? 'text-yellow-900' : 'text-blue-900'
-                            }`}>
+                            <span className={`text-sm font-bold ${isPending ? 'text-yellow-900' : 'text-blue-900'
+                              }`}>
                               {selectedTransaction.paymentDetails.bankAccount}
                             </span>
                           </div>
                         )}
                         {selectedTransaction.paymentDetails.accountName && (
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-medium ${
-                              isPending ? 'text-yellow-600' : 'text-blue-600'
-                            }`}>
+                            <span className={`text-xs font-medium ${isPending ? 'text-yellow-600' : 'text-blue-600'
+                              }`}>
                               Nama Pemilik:
                             </span>
-                            <span className={`text-sm font-bold ${
-                              isPending ? 'text-yellow-900' : 'text-blue-900'
-                            }`}>
+                            <span className={`text-sm font-bold ${isPending ? 'text-yellow-900' : 'text-blue-900'
+                              }`}>
                               {selectedTransaction.paymentDetails.accountName}
                             </span>
                           </div>
                         )}
                         {selectedTransaction.paymentDetails.phoneNumber && (
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-medium ${
-                              isPending ? 'text-yellow-600' : 'text-blue-600'
-                            }`}>
+                            <span className={`text-xs font-medium ${isPending ? 'text-yellow-600' : 'text-blue-600'
+                              }`}>
                               No. HP:
                             </span>
-                            <span className={`text-sm font-bold ${
-                              isPending ? 'text-yellow-900' : 'text-blue-900'
-                            }`}>
+                            <span className={`text-sm font-bold ${isPending ? 'text-yellow-900' : 'text-blue-900'
+                              }`}>
                               {selectedTransaction.paymentDetails.phoneNumber}
                             </span>
                           </div>
@@ -1764,13 +1748,11 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
 
               {/* Cancellation/Refund Info */}
               {(isCancelled || isRefunded) && (
-                <div className={`rounded-lg border-2 p-4 ${
-                  isCancelled ? 'bg-red-50 border-red-300' : 'bg-purple-50 border-purple-300'
-                }`}>
+                <div className={`rounded-lg border-2 p-4 ${isCancelled ? 'bg-red-50 border-red-300' : 'bg-purple-50 border-purple-300'
+                  }`}>
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      isCancelled ? 'bg-red-100' : 'bg-purple-100'
-                    }`}>
+                    <div className={`p-2 rounded-lg ${isCancelled ? 'bg-red-100' : 'bg-purple-100'
+                      }`}>
                       {isCancelled ? (
                         <X className="w-5 h-5 text-red-600" />
                       ) : (
@@ -1778,22 +1760,19 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className={`text-sm font-bold mb-1 ${
-                        isCancelled ? 'text-red-800' : 'text-purple-800'
-                      }`}>
+                      <p className={`text-sm font-bold mb-1 ${isCancelled ? 'text-red-800' : 'text-purple-800'
+                        }`}>
                         {isCancelled ? 'Transaksi Dibatalkan' : 'Transaksi Di-refund'}
                       </p>
                       {selectedTransaction.cancellationReason && (
-                        <p className={`text-sm ${
-                          isCancelled ? 'text-red-700' : 'text-purple-700'
-                        }`}>
+                        <p className={`text-sm ${isCancelled ? 'text-red-700' : 'text-purple-700'
+                          }`}>
                           Alasan: {selectedTransaction.cancellationReason}
                         </p>
                       )}
                       {selectedTransaction.cancelledAt && (
-                        <p className={`text-xs mt-1 ${
-                          isCancelled ? 'text-red-600' : 'text-purple-600'
-                        }`}>
+                        <p className={`text-xs mt-1 ${isCancelled ? 'text-red-600' : 'text-purple-600'
+                          }`}>
                           {new Date(selectedTransaction.cancelledAt).toLocaleString('id-ID')}
                         </p>
                       )}
@@ -1806,7 +1785,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   </div>
                 </div>
               )}
-              
+
               {/* Items Table */}
               <div className="border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700">
@@ -1845,7 +1824,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   ))}
                 </div>
               </div>
-              
+
               {/* Summary */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-bold mb-3">Ringkasan Pembayaran</p>
@@ -1866,7 +1845,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                       <span className="font-bold text-green-600">-{formatCurrency(selectedTransaction.discount)}</span>
                     </div>
                   )}
-                  
+
                   <div className="border-t-2 border-gray-300 pt-3 mt-3">
                     <div className="flex justify-between items-center">
                       <span className="text-xl font-bold text-gray-900 dark:text-white">TOTAL</span>
@@ -1877,12 +1856,11 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   </div>
                 </div>
               </div>
-              
+
               {/* Payment Amount Details */}
               {(isCompleted || isPending) && (
-                <div className={`rounded-lg p-4 border-2 ${
-                  isPending ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'
-                }`}>
+                <div className={`rounded-lg p-4 border-2 ${isPending ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'
+                  }`}>
                   <p className="text-xs text-gray-500 dark:text-gray-300 uppercase font-bold mb-3">Detail Pembayaran</p>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
@@ -1931,7 +1909,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                   </div>
                 </div>
               )}
-              
+
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t-2 border-gray-200 dark:border-gray-700">
                 {isCompleted && (
@@ -1955,7 +1933,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     </button>
                   </>
                 )}
-                
+
                 {isPending && (
                   <>
                     <button
@@ -1977,7 +1955,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                     </button>
                   </>
                 )}
-                
+
                 <button
                   onClick={() => setShowDetailModal(false)}
                   className="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors"
@@ -2015,7 +1993,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 </div>
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Alasan Pembatalan *
@@ -2029,7 +2007,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 required
               />
             </div>
-            
+
             <div className="flex gap-3 pt-4 border-t">
               <button
                 onClick={() => setShowCancelModal(false)}
@@ -2146,29 +2124,28 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                       confirmedAmount: value
                     });
                   }}
-                  className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-green-500 text-lg font-bold transition-colors ${
-                    (() => {
+                  className={`w-full pl-12 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-green-500 text-lg font-bold transition-colors ${(() => {
                       const confirmed = parseFloat(confirmPaymentData.confirmedAmount) || 0;
                       const expected = parseFloat(selectedTransaction.total) || 0;
                       const diff = Math.abs(confirmed - expected);
-                      
+
                       if (diff < 0.01) return 'border-green-300 bg-green-50';
                       if (diff > 0) return 'border-orange-300 bg-orange-50';
                       return 'border-gray-300';
                     })()
-                  }`}
+                    }`}
                   placeholder="0"
                   step="0.01"
                   min="0"
                 />
               </div>
-              
+
               {/* Smart Feedback */}
               {(() => {
                 const confirmedAmount = parseFloat(confirmPaymentData.confirmedAmount) || 0;
                 const expectedAmount = parseFloat(selectedTransaction.total) || 0;
                 const difference = confirmedAmount - expectedAmount;
-                
+
                 if (Math.abs(difference) < 0.01) {
                   return (
                     <div className="flex items-center gap-2 text-green-600 text-sm mt-2 font-medium">
@@ -2186,7 +2163,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                             Kelebihan Pembayaran
                           </p>
                           <p className="text-xs text-blue-600 mt-1">
-                            Customer bayar lebih {formatCurrency(difference)}. 
+                            Customer bayar lebih {formatCurrency(difference)}.
                             Kembalikan selisih atau catat sebagai deposit.
                           </p>
                         </div>
@@ -2203,7 +2180,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                             Pembayaran Kurang
                           </p>
                           <p className="text-xs text-orange-600 mt-1">
-                            Masih kurang {formatCurrency(Math.abs(difference))}. 
+                            Masih kurang {formatCurrency(Math.abs(difference))}.
                             Pastikan customer melunasi atau buat catatan piutang.
                           </p>
                         </div>
@@ -2213,13 +2190,13 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 }
               })()}
             </div>
-            
+
             {/* Upload Proof of Payment */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Bukti Transfer <span className="text-gray-500 dark:text-gray-300">(Opsional)</span>
               </label>
-              
+
               {confirmPaymentData.proofImagePreview ? (
                 <div className="relative">
                   <img
@@ -2256,7 +2233,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 </label>
               )}
             </div>
-            
+
             {/* Confirmation Notes */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2283,7 +2260,7 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
                 • Status transaksi akan berubah menjadi "Selesai"
               </p>
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex gap-3 pt-4 border-t-2 border-gray-200 dark:border-gray-700">
               <button
@@ -2322,96 +2299,96 @@ ${transaction.changeAmount > 0 ? createRow('Kembali', `Rp${formatRp(transaction.
         title="Proses Refund"
         size="md"
       >
-      {selectedTransaction && (
-        <div className="space-y-4">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <RefreshCw className="w-5 h-5 text-yellow-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-yellow-800">Refund Transaksi</p>
-                <p className="text-sm text-yellow-600">
-                  Invoice: {selectedTransaction?.invoiceNumber}
-                </p>
-                <p className="text-sm text-yellow-600">
-                  Total: {formatCurrency(selectedTransaction?.total)}
-                </p>
+        {selectedTransaction && (
+          <div className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <RefreshCw className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-yellow-800">Refund Transaksi</p>
+                  <p className="text-sm text-yellow-600">
+                    Invoice: {selectedTransaction?.invoiceNumber}
+                  </p>
+                  <p className="text-sm text-yellow-600">
+                    Total: {formatCurrency(selectedTransaction?.total)}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Jumlah Refund *
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2">Rp</span>
-              <input
-                type="number"
-                value={refundData.refundAmount}
-                onChange={(e) => setRefundData({...refundData, refundAmount: parseFloat(e.target.value)})}
-                max={selectedTransaction?.total}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
-              Maksimal: {formatCurrency(selectedTransaction?.total)}
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Metode Refund *
-            </label>
-            <select
-              value={refundData.refundMethod}
-              onChange={(e) => setRefundData({...refundData, refundMethod: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="cash">Tunai</option>
-              <option value="bank_transfer">Transfer Kembali</option>
-              <option value="store_credit">Kredit Toko</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Alasan Refund *
-            </label>
-            <textarea
-              value={refundData.reason}
-              onChange={(e) => setRefundData({...refundData, reason: e.target.value})}
-              rows="3"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              placeholder="Contoh: Barang rusak, tidak sesuai, dll."
-              required
-            />
-          </div>
-
-          {refundData.refundMethod === 'store_credit' && (
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-sm text-blue-700">
-                Kredit akan ditambahkan ke akun pelanggan untuk pembelian berikutnya
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Jumlah Refund *
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2">Rp</span>
+                <input
+                  type="number"
+                  value={refundData.refundAmount}
+                  onChange={(e) => setRefundData({ ...refundData, refundAmount: parseFloat(e.target.value) })}
+                  max={selectedTransaction?.total}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
+                Maksimal: {formatCurrency(selectedTransaction?.total)}
               </p>
             </div>
-          )}
 
-          <div className="flex gap-3 pt-4 border-t">
-            <button
-              onClick={() => setShowRefundModal(false)}
-              className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleRefund}
-              disabled={!refundData.reason.trim() || refundData.refundAmount <= 0}
-              className="flex-1 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium disabled:opacity-50"
-            >
-              Proses Refund
-            </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Metode Refund *
+              </label>
+              <select
+                value={refundData.refundMethod}
+                onChange={(e) => setRefundData({ ...refundData, refundMethod: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="cash">Tunai</option>
+                <option value="bank_transfer">Transfer Kembali</option>
+                <option value="store_credit">Kredit Toko</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Alasan Refund *
+              </label>
+              <textarea
+                value={refundData.reason}
+                onChange={(e) => setRefundData({ ...refundData, reason: e.target.value })}
+                rows="3"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                placeholder="Contoh: Barang rusak, tidak sesuai, dll."
+                required
+              />
+            </div>
+
+            {refundData.refundMethod === 'store_credit' && (
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  Kredit akan ditambahkan ke akun pelanggan untuk pembelian berikutnya
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4 border-t">
+              <button
+                onClick={() => setShowRefundModal(false)}
+                className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleRefund}
+                disabled={!refundData.reason.trim() || refundData.refundAmount <= 0}
+                className="flex-1 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                Proses Refund
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </Modal>
     </Layout>
   );

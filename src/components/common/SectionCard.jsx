@@ -2,8 +2,12 @@ import IconBox from './IconBox';
 
 /**
  * SectionCard - Standard card shell for dashboard/page sections.
- * Wraps content with consistent bg, border, radius & padding so pages
- * don't redeclare `bg-white rounded-xl shadow-sm border p-6` everywhere.
+ * Uses CSS variables (--color-surface, --color-border, --color-text, --color-text-muted)
+ * so it follows the app's theme system automatically — no hardcoded dark: bg/text classes.
+ *
+ * NOTE: variable names (--color-surface, --color-border) are assumed based on the
+ * --color-app-bg / --color-text / --color-primary pattern already used in Layout.jsx.
+ * Adjust if your actual theme file uses different names.
  *
  * @param {string} title - Section heading (optional)
  * @param {React.ComponentType} icon - Lucide icon shown next to title (optional)
@@ -31,8 +35,12 @@ export default function SectionCard({
 
     return (
         <div
-            className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 ${noPadding ? '' : paddingClasses[padding]
+            className={`rounded-xl shadow-sm border transition-colors ${noPadding ? '' : paddingClasses[padding]
                 } ${className}`}
+            style={{
+                backgroundColor: 'var(--color-surface, #fff)',
+                borderColor: 'var(--color-border, rgba(0,0,0,0.08))'
+            }}
         >
             {(title || action) && (
                 <div
@@ -43,12 +51,20 @@ export default function SectionCard({
                         {icon && <IconBox icon={icon} color={iconColor} size="sm" />}
                         <div className="min-w-0">
                             {title && (
-                                <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">
+                                <h3
+                                    className="text-base font-semibold truncate"
+                                    style={{ color: 'var(--color-text)' }}
+                                >
                                     {title}
                                 </h3>
                             )}
                             {subtitle && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{subtitle}</p>
+                                <p
+                                    className="text-xs truncate"
+                                    style={{ color: 'var(--color-text-muted)' }}
+                                >
+                                    {subtitle}
+                                </p>
                             )}
                         </div>
                     </div>

@@ -81,14 +81,14 @@ export default function Layout({ children }) {
     setSidebarCollapsed(prev => !prev);
   }, []);
 
-  // ── Sidebar width sebagai CSS variable di :root ──
-  // Lebih clean dari inject <style> tag setiap render
+  // Sidebar width sebagai CSS variable di :root.
+  // Dibaca langsung oleh Tailwind arbitrary value di <main> (lg:ml-[var(--sidebar-width)]),
+  // jadi TIDAK perlu inject <style> tag / !important setiap render.
   const sidebarW = sidebarCollapsed ? '56px' : '220px';
 
   useEffect(() => {
     document.documentElement.style.setProperty('--sidebar-width', sidebarW);
     return () => {
-      // cleanup saat unmount (kalau layout pernah unmount)
       document.documentElement.style.removeProperty('--sidebar-width');
     };
   }, [sidebarW]);
@@ -132,19 +132,17 @@ export default function Layout({ children }) {
       </div>
 
       {/* Page Content */}
+      {/*
+        Offset sidebar dipindah dari <style>+!important ke Tailwind arbitrary value
+        yang baca CSS var langsung (lg:ml-[var(--sidebar-width,220px)]).
+        Sama-sama reaktif terhadap perubahan --sidebar-width, tapi tanpa re-inject
+        <style> tag baru tiap render dan tanpa selector/!important yang fragile.
+      */}
       <main
         data-layout-main
-        className="relative z-10 w-full px-3 sm:px-4 lg:px-5 py-3 lg:py-4 pb-24 lg:pb-6 transition-all duration-300"
+        className="relative z-10 w-full px-3 sm:px-4 lg:px-5 py-3 lg:py-4 pb-24 lg:pb-6 transition-all duration-300 lg:ml-[var(--sidebar-width,220px)] lg:w-[calc(100%-var(--sidebar-width,220px))]"
       >
-        <style>{`
-          @media (min-width: 1024px) {
-            main[data-layout-main] {
-              margin-left: var(--sidebar-width, 220px) !important;
-              width: calc(100% - var(--sidebar-width, 220px)) !important;
-            }
-          }
-        `}</style>
-        <div className="mx-auto w-full max-w-[1400px]">
+        <div className="mx-auto w-full max-w-[1400px] space-y-4">
           <Breadcrumb />
           {children}
         </div>

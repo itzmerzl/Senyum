@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/DashboardLayout';
 import {
     ArrowDownLeft, Clock, CheckCircle, AlertTriangle, Users, FileText, UserX, Trash2, Plus, CreditCard, ArrowUpRight,
     ChevronLeft, ChevronRight, Search, Eye, Package

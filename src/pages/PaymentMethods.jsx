@@ -6,7 +6,7 @@ import {
   Banknote, Wallet, ToggleLeft, ToggleRight,
   Save, TrendingUp, Landmark
 } from 'lucide-react';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/DashboardLayout';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import {

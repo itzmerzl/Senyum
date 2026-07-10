@@ -5,7 +5,7 @@ import {
   Search, X, SlidersHorizontal, FileSpreadsheet, CheckCircle, AlertCircle,
   ChevronLeft, ChevronRight, MoreHorizontal, GraduationCap, MessageCircle
 } from 'lucide-react';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/DashboardLayout';
 import Modal from '../components/common/Modal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import StudentForm from '../components/features/students/StudentForm';

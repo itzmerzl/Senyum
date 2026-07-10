@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/DashboardLayout';
 import {
     BarChart3,
     Package,
@@ -41,8 +41,8 @@ const Reports = () => {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive
-                                            ? 'border-blue-500 text-blue-600 bg-blue-50/50'
-                                            : 'border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 hover:bg-gray-50 dark:bg-gray-700'
+                                        ? 'border-blue-500 text-blue-600 bg-blue-50/50'
+                                        : 'border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 hover:bg-gray-50 dark:bg-gray-700'
                                         }`}
                                 >
                                     <Icon className={`w-4 h-4 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />

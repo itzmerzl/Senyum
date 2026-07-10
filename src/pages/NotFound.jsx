@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { FileQuestion, ArrowLeft, Home } from 'lucide-react';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/DashboardLayout';
 
 export default function NotFound() {
     const navigate = useNavigate();

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Shield, RefreshCw, AlertTriangle, AlertCircle, User, Clock, Unlock } from 'lucide-react';
-import Layout from '../../components/layout/Layout';
+import Layout from '../../components/layout/DashboardLayout';
 import api from '../../utils/apiClient';
 import toast from 'react-hot-toast';
 
